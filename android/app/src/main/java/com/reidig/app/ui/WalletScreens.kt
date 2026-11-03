@@ -163,16 +163,14 @@ private val TENORS = listOf(3, 6, 12)
 private val DOWN_PAYMENT_PERCENTS = listOf(10, 20, 30)
 
 @Composable
-fun InstallmentScreen(env: AppEnv, onBack: () -> Unit, onDone: () -> Unit) {
+fun InstallmentScreen(env: AppEnv, onBack: () -> Unit, onNext: (InstallmentDraft) -> Unit) {
     val state by env.repo.state.collectAsStateWithLifecycle()
     var skuCode by rememberSaveable { mutableStateOf("LMRE-5G") }
     var tenor by rememberSaveable { mutableStateOf(6) }
     var dpPercent by rememberSaveable { mutableStateOf(20) }
-    var askPin by remember { mutableStateOf(false) }
     val sku = state.sku(skuCode)
     val downPayment = sku.buyPrice * dpPercent / 100
     val monthly = (sku.buyPrice - downPayment) / tenor
-    val enoughBalance = state.walletBalance >= downPayment
 
     FormScreen(
         "Cicil Emas",
@@ -180,7 +178,7 @@ fun InstallmentScreen(env: AppEnv, onBack: () -> Unit, onDone: () -> Unit) {
         bottom = {
             SummaryRow("Uang muka", rupiah(downPayment), strong = true)
             Spacer(Modifier.height(8.dp))
-            PrimaryButton("Ajukan cicilan", { askPin = true }, enabled = enoughBalance)
+            PrimaryButton("Lanjut ke perjanjian", { onNext(InstallmentDraft(skuCode, sku.buyPrice, downPayment, tenor)) }, enabled = sku.stock > 0)
         },
     ) {
         Headline("Cicil emas", "Token baru bisa dijual atau dicetak setelah lunas.")
@@ -203,18 +201,7 @@ fun InstallmentScreen(env: AppEnv, onBack: () -> Unit, onDone: () -> Unit) {
             SummaryRow("Angsuran per bulan", rupiah(monthly), strong = true)
         }
         Spacer(Modifier.height(8.dp))
-        if (!enoughBalance) ErrorLine("Saldo belum cukup untuk uang muka.")
         Text("Angsuran belum termasuk biaya dari mitra.", color = Palette.InkSoft, fontSize = 13.sp)
-    }
-
-    if (askPin) {
-        PinDialog(env, "Ajukan cicilan ${gram(sku.weightMg)}", { askPin = false }) {
-            askPin = false
-            if (env.attempt { env.repo.applyInstallment(skuCode, downPayment, tenor) } != null) {
-                env.notify("Cicilan disetujui.")
-                onDone()
-            }
-        }
     }
 }
 
@@ -306,5 +293,6 @@ private fun ContractCard(env: AppEnv, contract: InstallmentContract) {
         token?.let { Text("${state.sku(it.skuCode).product} ${gram(state.sku(it.skuCode).weightMg)}", fontSize = 14.sp) }
         Text("${rupiah(contract.monthlyBeforeFees)} per bulan · ${contract.paidMonths} dari ${contract.tenorMonths} bulan", color = Palette.InkSoft, fontSize = 13.sp)
         Text(contract.partner, color = Palette.InkSoft, fontSize = 13.sp)
+        Text("Perjanjian ${contract.agreementVersion} disetujui ${dateTime(contract.agreedAtMs)}", color = Palette.InkSoft, fontSize = 13.sp)
     }
 }

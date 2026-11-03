@@ -201,17 +201,68 @@ class MockRepositoryTest {
         assertCode("TOKEN_LOCKED") { repo.sell(half) }
     }
 
+    private fun submit(skuCode: String = "LMRE-0.5G", downPayment: Long = 300_000) =
+        repo.submitInstallment(skuCode, downPayment, 6, state.sku(skuCode).buyPrice, Rules.INSTALLMENT_AGREEMENT_VERSION)
+
     @Test
     fun installmentLocksTokenUntilPartnerConfirms() {
         demo()
         val valueBefore = state.portfolioValue
-        val contract = repo.applyInstallment("LMRE-0.5G", 300_000, 6)
+        val contract = repo.payDownPayment(submit().id, PaymentMethod.QRIS)
         assertEquals(valueBefore, state.portfolioValue)
+        assertEquals(Rules.INSTALLMENT_AGREEMENT_VERSION, contract.agreementVersion)
         assertCode("TOKEN_LOCKED") { repo.sell(contract.tokenCode) }
         assertCode("TOKEN_LOCKED") { repo.createPrintOrder(listOf(contract.tokenCode), PrintMethod.JNE, "Alamat", null) }
         now += Rules.HOLDING_PERIOD_MS
         repo.markInstallmentPaidOff(contract.id)
         repo.sell(contract.tokenCode)
+    }
+
+    @Test
+    fun installmentRequiresAgreementAndCurrentPrice() {
+        demo()
+        val price = state.sku("LMRE-1G").buyPrice
+        assertCode("AGREEMENT_REQUIRED") { repo.submitInstallment("LMRE-1G", 500_000, 6, price, "") }
+        assertCode("PRICE_CHANGED") { repo.submitInstallment("LMRE-1G", 500_000, 6, price - 1, Rules.INSTALLMENT_AGREEMENT_VERSION) }
+        assertEquals(40, state.sku("LMRE-1G").stock)
+    }
+
+    @Test
+    fun submittingAgreementHoldsPieceButIssuesNoTokenBeforeDownPayment() {
+        demo()
+        val stock = state.sku("LMRE-0.5G").stock
+        val tokens = state.tokens.size
+        val balance = state.walletBalance
+        val application = submit()
+        assertEquals(stock - 1, state.sku("LMRE-0.5G").stock)
+        assertEquals(tokens, state.tokens.size)
+        assertEquals(balance, state.walletBalance)
+        repo.cancelInstallment(application.id)
+        assertEquals(stock, state.sku("LMRE-0.5G").stock)
+        assertCode("ORDER_NOT_FOUND") { repo.payDownPayment(application.id, PaymentMethod.QRIS) }
+    }
+
+    @Test
+    fun walletDownPaymentChecksBalanceAndCanRetryWithOtherMethod() {
+        demo()
+        val application = submit("LMRE-10G", 5_000_000)
+        val balance = state.walletBalance
+        assertCode("INSUFFICIENT_BALANCE") { repo.payDownPayment(application.id, PaymentMethod.WALLET) }
+        assertEquals(balance, state.walletBalance)
+        repo.payDownPayment(application.id, PaymentMethod.VIRTUAL_ACCOUNT)
+        assertEquals(balance, state.walletBalance)
+        assertEquals(1, state.contracts.size)
+    }
+
+    @Test
+    fun expiredDownPaymentCancelsApplicationAndReleasesPiece() {
+        demo()
+        val stock = state.sku("LMRE-0.5G").stock
+        val application = submit()
+        now += Rules.PAYMENT_WINDOW_MS + 1
+        assertCode("ORDER_EXPIRED") { repo.payDownPayment(application.id, PaymentMethod.QRIS) }
+        assertEquals(stock, state.sku("LMRE-0.5G").stock)
+        assertTrue(state.contracts.isEmpty())
     }
 
     @Test

@@ -19,6 +19,7 @@ class MockRepository(
 
     private val quotes = mutableMapOf<String, Quote>()
     private val pending = mutableMapOf<String, PendingOrder>()
+    private val applications = mutableMapOf<String, InstallmentApplication>()
     private var pinAttempts = 0
     private var serialCounter = 500_000
     private var idCounter = 1
@@ -83,6 +84,7 @@ class MockRepository(
     fun logout() {
         pinAttempts = 0
         pending.clear()
+        applications.clear()
         _state.value = initialState()
     }
 
@@ -279,25 +281,83 @@ class MockRepository(
 
     // ----- Cicil -----
 
-    /** Dalam produksi, persetujuan datang dari mitra pembiayaan. */
-    fun applyInstallment(skuCode: String, downPayment: Long, tenorMonths: Int): InstallmentContract {
+    /** Mencatat persetujuan perjanjian dan menahan satu keping sampai uang muka dibayar. */
+    fun submitInstallment(
+        skuCode: String,
+        downPayment: Long,
+        tenorMonths: Int,
+        expectedPrice: Long,
+        agreementVersion: String,
+    ): InstallmentApplication {
         val state = _state.value
         val sku = state.sku(skuCode)
         if (state.user?.verified != true) fail("KYC_REQUIRED", "Verifikasi identitas diperlukan sebelum mencicil.")
+        if (agreementVersion != Rules.INSTALLMENT_AGREEMENT_VERSION) fail("AGREEMENT_REQUIRED", "Setujui perjanjian cicilan terlebih dahulu.")
+        if (sku.buyPrice != expectedPrice) fail("PRICE_CHANGED", "Harga sudah berubah. Silakan periksa lagi perjanjiannya.")
+        if (downPayment <= 0 || downPayment >= sku.buyPrice || tenorMonths <= 0) fail("INVALID", "Periksa kembali uang muka dan tenor.")
         if (sku.stock < 1) fail("INSUFFICIENT_STOCK", "Stok ${sku.code} tidak mencukupi.")
-        if (downPayment > state.walletBalance) fail("INSUFFICIENT_BALANCE", "Saldo tidak cukup untuk uang muka.")
-        val token = GoldToken(tokenCode(sku), sku.code, newSerial(sku), TokenStatus.LOCKED_INSTALLMENT, sku.buyPrice, clock())
-        val contract = InstallmentContract(nextId("MTR"), "Mitra pembiayaan", token.code, sku.buyPrice, downPayment, tenorMonths, 0)
+        val now = clock()
+        val application = InstallmentApplication(
+            nextId("AJU"),
+            skuCode,
+            sku.buyPrice,
+            downPayment,
+            tenorMonths,
+            agreementVersion,
+            now,
+            now + Rules.PAYMENT_WINDOW_MS,
+        )
+        adjustStock(skuCode, -1)
+        applications[application.id] = application
+        return application
+    }
+
+    /** Kode QRIS atau VA untuk uang muka. */
+    fun downPaymentCode(method: PaymentMethod): String = when (method) {
+        PaymentMethod.WALLET -> ""
+        PaymentMethod.QRIS -> "QR-" + random.nextInt(100000, 999999)
+        PaymentMethod.VIRTUAL_ACCOUNT -> "70070" + random.nextLong(100000000L, 999999999L)
+    }
+
+    /** Token terkunci baru terbit setelah uang muka lunas. */
+    fun payDownPayment(applicationId: String, method: PaymentMethod): InstallmentContract {
+        val application = applications[applicationId] ?: fail("ORDER_NOT_FOUND", "Pengajuan tidak ditemukan.")
+        if (clock() > application.payBeforeMs) {
+            cancelInstallment(applicationId)
+            fail("ORDER_EXPIRED", "Batas waktu pembayaran habis. Pengajuan dibatalkan.")
+        }
+        val state = _state.value
+        if (method == PaymentMethod.WALLET && state.walletBalance < application.downPayment) {
+            fail("INSUFFICIENT_BALANCE", "Saldo tidak mencukupi.")
+        }
+        val sku = state.sku(application.skuCode)
+        val token = GoldToken(tokenCode(sku), sku.code, newSerial(sku), TokenStatus.LOCKED_INSTALLMENT, application.price, clock())
+        val contract = InstallmentContract(
+            nextId("MTR"),
+            "Mitra pembiayaan",
+            token.code,
+            application.price,
+            application.downPayment,
+            application.tenorMonths,
+            0,
+            application.agreementVersion,
+            application.agreedAtMs,
+        )
         _state.update { s ->
             s.copy(
-                walletBalance = s.walletBalance - downPayment,
-                skus = s.skus.map { if (it.code == sku.code) it.copy(stock = it.stock - 1) else it },
+                walletBalance = if (method == PaymentMethod.WALLET) s.walletBalance - application.downPayment else s.walletBalance,
                 tokens = listOf(token) + s.tokens,
                 contracts = listOf(contract) + s.contracts,
-                transactions = listOf(Tx(nextId("TX"), TxType.INSTALLMENT, "Uang muka cicil ${sku.product} ${gram(sku.weightMg)}", -downPayment, clock())) + s.transactions,
+                transactions = listOf(Tx(nextId("TX"), TxType.INSTALLMENT, "Uang muka cicil ${sku.product} ${gram(sku.weightMg)}", -application.downPayment, clock())) + s.transactions,
             )
         }
+        applications.remove(applicationId)
         return contract
+    }
+
+    fun cancelInstallment(applicationId: String) {
+        val application = applications.remove(applicationId) ?: return
+        adjustStock(application.skuCode, 1)
     }
 
     /** Dalam produksi dipicu webhook lunas dari mitra. */

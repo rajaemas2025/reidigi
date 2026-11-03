@@ -88,6 +88,22 @@ data class InstallmentContract(
     val downPayment: Long,
     val tenorMonths: Int,
     val paidMonths: Int,
+    val agreementVersion: String,
+    val agreedAtMs: Long,
+) {
+    val monthlyBeforeFees: Long get() = (price - downPayment) / tenorMonths
+}
+
+/** Pengajuan yang perjanjiannya sudah disetujui dan menunggu uang muka. Satu keping ditahan selama menunggu. */
+data class InstallmentApplication(
+    val id: String,
+    val skuCode: String,
+    val price: Long,
+    val downPayment: Long,
+    val tenorMonths: Int,
+    val agreementVersion: String,
+    val agreedAtMs: Long,
+    val payBeforeMs: Long,
 ) {
     val monthlyBeforeFees: Long get() = (price - downPayment) / tenorMonths
 }

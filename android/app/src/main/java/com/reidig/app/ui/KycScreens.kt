@@ -140,7 +140,7 @@ private fun PolicyItem(title: String, body: String) {
 }
 
 @Composable
-private fun ConsentRow(text: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+internal fun ConsentRow(text: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     val shape = RoundedCornerShape(12.dp)
     Row(
         Modifier.fillMaxWidth().padding(bottom = 10.dp).clip(shape)

@@ -40,10 +40,13 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.reidig.shared.GoldToken
+import com.reidig.shared.InstallmentApplication
+import com.reidig.shared.InstallmentContract
 import com.reidig.shared.MockRepository
 import com.reidig.shared.PrintMethod
 import com.reidig.shared.PrintOrder
 import com.reidig.shared.gram
+import com.reidig.shared.rupiah
 
 private data class Tab(val route: String, val label: String, val icon: ImageVector)
 
@@ -210,7 +213,44 @@ fun ReidigApp(repo: MockRepository) {
                     WithdrawScreen(env, { nav.popBackStack() }) { nav.switchTab("wallet") }
                 }
                 composable("installment") {
-                    InstallmentScreen(env, { nav.popBackStack() }) { nav.switchTab("account") }
+                    InstallmentScreen(env, { nav.popBackStack() }) { draft ->
+                        results.installmentDraft = draft
+                        nav.navigate("installment-agreement")
+                    }
+                }
+                composable("installment-agreement") {
+                    results.installmentDraft?.let { draft ->
+                        InstallmentAgreementScreen(env, draft, { nav.popBackStack() }) { application ->
+                            results.application = application
+                            // Setelah diajukan, tombol kembali tidak lagi membuka perjanjian.
+                            nav.navigate("installment-pay") { popUpTo("home") }
+                        }
+                    }
+                }
+                composable("installment-pay") {
+                    results.application?.let { application ->
+                        DownPaymentScreen(env, application, onCancelled = { nav.popBackStack("home", false) }) { contract ->
+                            results.contract = contract
+                            nav.navigate("installment-success") { popUpTo("home") }
+                        }
+                    }
+                }
+                composable("installment-success") {
+                    SuccessScreen(
+                        "Uang muka diterima",
+                        "Cicilan Anda aktif. Token terkunci sampai lunas.",
+                        "Lihat kontrak",
+                        { nav.switchTab("account") },
+                    ) {
+                        results.contract?.let { contract ->
+                            SurfaceCard {
+                                SummaryRow("Kontrak", contract.id)
+                                SummaryRow("Uang muka", rupiah(contract.downPayment))
+                                SummaryRow("Angsuran per bulan", rupiah(contract.monthlyBeforeFees), strong = true)
+                                SummaryRow("Tenor", "${contract.tenorMonths} bulan")
+                            }
+                        }
+                    }
                 }
                 composable("account") {
                     AccountScreen(
@@ -254,6 +294,9 @@ fun ReidigApp(repo: MockRepository) {
 private class TransactionResults {
     var minted: List<GoldToken> = emptyList()
     var printOrder: PrintOrder? = null
+    var installmentDraft: InstallmentDraft? = null
+    var application: InstallmentApplication? = null
+    var contract: InstallmentContract? = null
 }
 
 private fun NavHostController.switchTab(route: String) {

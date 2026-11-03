@@ -1,5 +1,6 @@
 package com.reidig.app.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -7,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -53,7 +55,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -63,6 +67,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.reidig.app.R
 import com.reidig.shared.GoldToken
 import com.reidig.shared.PaymentMethod
 import com.reidig.shared.PendingOrder
@@ -102,8 +107,6 @@ fun HomeScreen(
             Spacer(Modifier.height(16.dp))
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Color.White.copy(alpha = 0.12f)).padding(14.dp)) {
                 HomePriceRow("1 gr", state.sku("LMRE-1G"))
-                Spacer(Modifier.height(12.dp))
-                HomePriceRow("1 kg", state.sku("LMRE-1000G"))
                 Spacer(Modifier.height(8.dp))
                 Text("Diperbarui ${state.priceUpdatedAtLabel}", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
             }
@@ -132,6 +135,13 @@ fun HomeScreen(
                 Text("Saldo REIDIG", color = Palette.InkSoft, fontSize = 13.sp)
                 Text(rupiah(state.walletBalance), fontWeight = FontWeight.Bold, fontSize = 20.sp)
             }
+            Spacer(Modifier.height(16.dp))
+            Image(
+                painterResource(R.drawable.banner_jual_emas),
+                contentDescription = "Jual emas paling transparan dengan harga tinggi di Raja Emas Indonesia",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxWidth().aspectRatio(2f).clip(RoundedCornerShape(16.dp)),
+            )
         }
     }
 }
@@ -358,14 +368,20 @@ fun BuyScreen(env: AppEnv, skuCode: String, onBack: () -> Unit, onDone: (List<Go
     pendingOrder?.let { order ->
         PaymentWaitDialog(
             env,
-            order,
+            order.quote.total,
+            order.method,
+            order.paymentCode,
+            order.payBeforeMs,
+            "Batalkan pesanan",
             onCancel = {
                 env.repo.cancelOrder(order.id)
                 pendingOrder = null
             },
-            onPaid = { minted ->
-                pendingOrder = null
-                onDone(minted)
+            onConfirm = {
+                env.attempt { env.repo.confirmPayment(order.id) }?.let { minted ->
+                    pendingOrder = null
+                    onDone(minted)
+                }
             },
         )
     }
@@ -377,11 +393,20 @@ private fun BuyPreview() = ReidigTheme { BuyScreen(rememberPreviewEnv(), "LMRE-1
 
 /** Menampilkan QR atau nomor VA dari iFortepay sampai callback pembayaran masuk. */
 @Composable
-private fun PaymentWaitDialog(env: AppEnv, order: PendingOrder, onCancel: () -> Unit, onPaid: (List<GoldToken>) -> Unit) {
+internal fun PaymentWaitDialog(
+    env: AppEnv,
+    amount: Long,
+    method: PaymentMethod,
+    paymentCode: String,
+    payBeforeMs: Long,
+    cancelLabel: String,
+    onCancel: () -> Unit,
+    onConfirm: () -> Unit,
+) {
     var secondsLeft by remember { mutableLongStateOf(0L) }
-    LaunchedEffect(order.id) {
+    LaunchedEffect(payBeforeMs) {
         while (true) {
-            secondsLeft = ((order.payBeforeMs - System.currentTimeMillis()) / 1000).coerceAtLeast(0)
+            secondsLeft = ((payBeforeMs - System.currentTimeMillis()) / 1000).coerceAtLeast(0)
             if (secondsLeft == 0L) {
                 env.notify("Batas waktu pembayaran habis. Keping dilepas kembali.")
                 onCancel()
@@ -394,14 +419,14 @@ private fun PaymentWaitDialog(env: AppEnv, order: PendingOrder, onCancel: () -> 
         Column(Modifier.fillMaxSize().background(Color.White).statusBarsPadding().navigationBarsPadding()) {
             TopTitleBar("Menunggu Pembayaran", onCancel)
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(rupiah(order.quote.total), fontWeight = FontWeight.ExtraBold, fontSize = 28.sp)
+                Text(rupiah(amount), fontWeight = FontWeight.ExtraBold, fontSize = 28.sp)
                 Spacer(Modifier.height(4.dp))
                 Text(
                     "Bayar dalam ${secondsLeft / 60}:${(secondsLeft % 60).toString().padStart(2, '0')}",
                     color = Palette.InkSoft,
                 )
                 Spacer(Modifier.height(20.dp))
-                if (order.method == PaymentMethod.QRIS) {
+                if (method == PaymentMethod.QRIS) {
                     Box(
                         Modifier.size(220.dp).clip(RoundedCornerShape(16.dp)).background(Palette.Lavender).border(1.dp, Palette.Ring, RoundedCornerShape(16.dp)),
                         contentAlignment = Alignment.Center,
@@ -413,7 +438,7 @@ private fun PaymentWaitDialog(env: AppEnv, order: PendingOrder, onCancel: () -> 
                 } else {
                     SurfaceCard(tint = Palette.Lavender) {
                         Text("Nomor Virtual Account BCA", color = Palette.InkSoft, fontSize = 13.sp)
-                        Text(order.paymentCode, fontWeight = FontWeight.Bold, fontSize = 22.sp)
+                        Text(paymentCode, fontWeight = FontWeight.Bold, fontSize = 22.sp)
                     }
                     Spacer(Modifier.height(12.dp))
                     Text("Transfer sesuai nominal dari ATM atau aplikasi bank.", color = Palette.InkSoft, textAlign = TextAlign.Center)
@@ -422,16 +447,16 @@ private fun PaymentWaitDialog(env: AppEnv, order: PendingOrder, onCancel: () -> 
                 Text("Harga dan keping ditahan sampai batas waktu habis.", color = Palette.InkSoft, fontSize = 13.sp, textAlign = TextAlign.Center)
             }
             Column(Modifier.padding(20.dp)) {
-                PrimaryButton("Saya sudah bayar", { env.attempt { env.repo.confirmPayment(order.id) }?.let(onPaid) })
+                PrimaryButton("Saya sudah bayar", onConfirm)
                 Spacer(Modifier.height(10.dp))
-                SecondaryButton("Batalkan pesanan", onCancel)
+                SecondaryButton(cancelLabel, onCancel)
             }
         }
     }
 }
 
 @Composable
-private fun PaymentOption(title: String, detail: String, selected: Boolean, onClick: () -> Unit) {
+internal fun PaymentOption(title: String, detail: String, selected: Boolean, onClick: () -> Unit) {
     val shape = RoundedCornerShape(12.dp)
     Row(
         Modifier.fillMaxWidth().clip(shape).background(if (selected) Palette.Lavender else Color.White)

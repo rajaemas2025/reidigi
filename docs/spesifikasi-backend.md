@@ -271,3 +271,19 @@ Karena dana hasil jual langsung masuk ke Saldo internal aplikasi, transaksi *buy
 
 **Penarikan Dana (`POST /v1/wallet/withdrawals` — Wajib PIN):**
 1. Dalam satu transaksi database: pastikan
+
+### 6.3 Cicil Emas Lewat Mitra
+
+Alur pengguna: simulasi, lembar perjanjian, ajukan, bayar uang muka, lalu token terkunci.
+
+1. **Simulasi:** pengguna memilih SKU, uang muka, dan tenor. Belum ada yang berubah di sistem.
+2. **Perjanjian:** pengguna membaca perjanjian dan mencentang persetujuan isi perjanjian serta pembagian data ke mitra. Mengajukan tanpa keduanya ditolak dengan `AGREEMENT_REQUIRED`.
+3. **Pengajuan:** `POST /v1/financing/applications` memerlukan PIN. Dalam satu transaksi, sistem memeriksa bahwa harga masih sama dengan yang ditampilkan (kalau tidak, `PRICE_CHANGED`), menyimpan bukti persetujuan, dan mengubah satu unit menjadi `RESERVED` selama 15 menit.
+4. **Uang muka:** `POST /v1/financing/applications/{id}/down-payment` dengan saldo, QRIS, atau VA. Saldo yang kurang tidak membatalkan pengajuan; pengguna bisa memilih metode lain.
+5. **Setelah lunas:** unit menjadi `ALLOCATED`, token terbit sebagai `LOCKED_INSTALLMENT`, dan kontrak dibuat.
+6. **Batal atau kedaluwarsa:** unit kembali `AVAILABLE`, dan token tidak pernah terbit. Pembayaran yang masuk setelah kedaluwarsa dikembalikan ke saldo.
+7. **Lunas:** token menjadi `ACTIVE` setelah webhook lunas dari mitra terverifikasi.
+
+**Bukti persetujuan wajib disimpan permanen** di `financing_agreements` dan tidak boleh diubah: pengguna, versi dan hash isi perjanjian, ringkasan angka yang ditampilkan (harga, uang muka, tenor, angsuran), waktu, perangkat, dan alamat IP. Setiap perubahan isi perjanjian harus menjadi versi baru.
+
+Isi perjanjian perlu ditinjau tim legal dan disesuaikan dengan kontrak mitra sebelum dipakai. Kalau mitra perlu menilai kredit lebih dulu, tambahkan status menunggu persetujuan di antara langkah 3 dan 4, dan perpanjang masa tahan keping sesuai kesepakatan dengan mitra.

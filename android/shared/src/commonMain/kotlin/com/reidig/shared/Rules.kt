@@ -5,6 +5,7 @@ object Rules {
     const val HOLDING_PERIOD_MS = 24L * 60 * 60 * 1000
     const val QUOTE_TTL_MS = 60_000L
     const val PAYMENT_WINDOW_MS = 15L * 60 * 1000
+    const val INSTALLMENT_AGREEMENT_VERSION = "CICIL-1"
     const val MAX_PIN_ATTEMPTS = 5
     /** Situs menampilkan buyback di bawah nilai ini bebas PPh 22. Perlu konfirmasi konsultan pajak. */
     const val TAX_FREE_SELL_LIMIT = 10_000_000L
