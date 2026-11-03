@@ -38,28 +38,28 @@ interface NavItem {
 }
 
 const NAV: { group: string; items: NavItem[] }[] = [
-  { group: 'Ikhtisar', items: [{ to: '/', label: 'Ringkasan', icon: LayoutGrid, roles: ALL }] },
+  { group: 'Dasbor Utama', items: [{ to: '/', label: 'Ringkasan Eksekutif', icon: LayoutGrid, roles: ALL }] },
   {
-    group: 'Gudang',
+    group: 'Operasional Brankas',
     items: [
-      { to: '/sku', label: 'Katalog SKU', icon: Tags, roles: STOCK_READERS },
-      { to: '/stok', label: 'Stok Keping', icon: Boxes, roles: STOCK_READERS },
-      { to: '/opname', label: 'Stock Opname', icon: ClipboardCheck, roles: ['WAREHOUSE_STAFF', 'WAREHOUSE_SUPERVISOR', 'FINANCE', 'AUDITOR'] },
-      { to: '/pemenuhan', label: 'Pemenuhan Cetak', icon: PackageOpen, roles: ['WAREHOUSE_STAFF', 'WAREHOUSE_SUPERVISOR', 'AUDITOR'] },
+      { to: '/sku', label: 'Katalog Produk SKU', icon: Tags, roles: STOCK_READERS },
+      { to: '/stok', label: 'Stok Keping Fisik', icon: Boxes, roles: STOCK_READERS },
+      { to: '/opname', label: 'Stock Opname Brankas', icon: ClipboardCheck, roles: ['WAREHOUSE_STAFF', 'WAREHOUSE_SUPERVISOR', 'FINANCE', 'AUDITOR'] },
+      { to: '/pemenuhan', label: 'Pemenuhan Cetak Fisik', icon: PackageOpen, roles: ['WAREHOUSE_STAFF', 'WAREHOUSE_SUPERVISOR', 'AUDITOR'] },
     ],
   },
   {
-    group: 'Bisnis',
+    group: 'Bisnis & Keuangan',
     items: [
-      { to: '/harga', label: 'Harga', icon: Tag, roles: ['TREASURY', 'FINANCE', 'CS', 'AUDITOR'] },
-      { to: '/keuangan', label: 'Keuangan', icon: Banknote, roles: ['FINANCE', 'TREASURY', 'COMPLIANCE', 'CS', 'AUDITOR'] },
-      { to: '/cicilan', label: 'Cicilan Mitra', icon: CreditCard, roles: ['FINANCE', 'COMPLIANCE', 'CS', 'AUDITOR'] },
-      { to: '/kyc', label: 'Tinjauan KYC', icon: ShieldCheck, roles: ['COMPLIANCE', 'CS', 'AUDITOR'] },
+      { to: '/harga', label: 'Harga & Pasar Emas', icon: Tag, roles: ['TREASURY', 'FINANCE', 'CS', 'AUDITOR'] },
+      { to: '/keuangan', label: 'Kas & Rekonsiliasi Saldo', icon: Banknote, roles: ['FINANCE', 'TREASURY', 'COMPLIANCE', 'CS', 'AUDITOR'] },
+      { to: '/cicilan', label: 'Cicilan Emas Mitra', icon: CreditCard, roles: ['FINANCE', 'COMPLIANCE', 'CS', 'AUDITOR'] },
+      { to: '/kyc', label: 'Verifikasi Nasabah (KYC)', icon: ShieldCheck, roles: ['COMPLIANCE', 'CS', 'AUDITOR'] },
     ],
   },
   {
-    group: 'Kontrol',
-    items: [{ to: '/audit', label: 'Jejak Audit', icon: ScrollText, roles: ['WAREHOUSE_SUPERVISOR', 'FINANCE', 'COMPLIANCE', 'AUDITOR'] }],
+    group: 'Kepatuhan & Pengawasan',
+    items: [{ to: '/audit', label: 'Jejak Audit Sistem', icon: ScrollText, roles: ['WAREHOUSE_SUPERVISOR', 'FINANCE', 'COMPLIANCE', 'AUDITOR'] }],
   },
 ]
 
@@ -75,9 +75,12 @@ function Guard({ path, children }: { path: string; children: React.ReactNode }) 
   if (!canOpen(actor.role, path)) {
     return (
       <div className="empty empty-page">
-        <strong>Halaman ini tidak tersedia untuk peran {ROLE_LABEL[actor.role]}.</strong>
+        <strong>Akses Halaman Dibatasi</strong>
+        <p className="muted" style={{ maxWidth: 440 }}>
+          Halaman ini memerlukan wewenang khusus dan saat ini tidak tersedia untuk peran {ROLE_LABEL[actor.role]}.
+        </p>
         <Link className="link" to="/">
-          Kembali ke ringkasan
+          Kembali ke ringkasan utama
         </Link>
       </div>
     )
@@ -96,7 +99,7 @@ function Sidebar() {
           <small>Raja Emas Indonesia</small>
         </span>
       </Link>
-      <nav aria-label="Menu utama">
+      <nav aria-label="Menu navigasi utama">
         {NAV.map((group) => {
           const items = group.items.filter((i) => i.roles.includes(actor.role))
           if (!items.length) return null
@@ -117,10 +120,12 @@ function Sidebar() {
         type="button"
         className="reset"
         onClick={() => {
-          if (window.confirm('Kembalikan semua data ke kondisi awal?')) resetDemoData()
+          if (window.confirm('Kembalikan semua data simulasi ke kondisi awal? Seluruh perubahan uji coba Anda akan diatur ulang.')) {
+            resetDemoData()
+          }
         }}
       >
-        <RotateCcw size={18} /> Atur ulang data
+        <RotateCcw size={18} /> Atur ulang data simulasi
       </button>
     </aside>
   )
@@ -144,14 +149,18 @@ function Topbar() {
       <form className="search" onSubmit={submit}>
         <Search size={18} />
         <input
-          aria-label="Cari nomor seri atau token"
-          placeholder={canSearch ? 'Cari nomor seri atau token' : 'Pencarian tidak tersedia'}
+          aria-label="Cari nomor seri keping atau kode token"
+          placeholder={canSearch ? 'Cari nomor seri keping atau kode token...' : 'Pencarian keping hanya untuk tim terkait'}
           disabled={!canSearch}
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
       </form>
-      <span className="icon-btn bell" title={`${urgent} hal mendesak`} aria-label={`${urgent} hal mendesak`}>
+      <span
+        className="icon-btn bell"
+        title={urgent > 0 ? `${urgent} penarikan dana membutuhkan perhatian segera` : 'Tidak ada hal mendesak saat ini'}
+        aria-label={urgent > 0 ? `${urgent} hal mendesak` : 'Tidak ada kendala'}
+      >
         <Bell size={18} />
         {urgent > 0 && <i>{urgent}</i>}
       </span>
@@ -159,11 +168,11 @@ function Topbar() {
       <div className="user">
         <span className="avatar">{actor.name.charAt(0)}</span>
         <label>
-          <small>Masuk sebagai</small>
-          <select aria-label="Ganti peran" value={actor.id} onChange={(e) => setActor(e.target.value)}>
+          <small>Bertugas sebagai</small>
+          <select aria-label="Ganti peran pengguna" value={actor.id} onChange={(e) => setActor(e.target.value)}>
             {USERS.map((u) => (
               <option key={u.id} value={u.id}>
-                {u.name}
+                {u.name} ({ROLE_LABEL[u.role]})
               </option>
             ))}
           </select>

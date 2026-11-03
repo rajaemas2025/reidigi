@@ -15,30 +15,32 @@ export function PricingPage() {
   return (
     <>
       <PageHeader
-        title="Harga"
-        subtitle={trading && `Sumber ${trading.source}, diperbarui ${dateTime(trading.priceUpdatedAt)}`}
+        title="Harga & Pasar Emas"
+        subtitle={trading && `Kuotasi harga acuan dari ${trading.source} · Terakhir diperbarui ${dateTime(trading.priceUpdatedAt)}`}
         actions={
           isTreasury &&
           trading &&
           (trading.halted ? (
-            <Button onClick={() => act(() => api.resumeTrading(actor), 'Transaksi dibuka kembali.')}>Buka kembali transaksi</Button>
+            <Button onClick={() => act(() => api.resumeTrading(actor), 'Transaksi jual-beli emas berhasil dibuka kembali.')}>
+              Buka Kembali Transaksi
+            </Button>
           ) : (
             <Button variant="danger" onClick={() => setHalting(true)}>
-              Hentikan transaksi
+              Hentikan Transaksi Darurat
             </Button>
           ))
         }
       />
       {trading?.halted && (
         <div className="alert">
-          <Badge tone="critical">Transaksi dihentikan</Badge>
+          <Badge tone="critical">Transaksi Sedang Dihentikan</Badge>
           <span>
-            {trading.reason} · oleh {trading.haltedBy}. Harus dibuka kembali oleh orang lain.
+            {trading.reason} · Oleh {trading.haltedBy}. Demi kepatuhan prinsip dual-control, pembukaan kembali harus dilakukan oleh personel Treasury yang berbeda.
           </span>
         </div>
       )}
       <Card flush>
-        <Table head={['SKU', 'Berat', 'Harga beli', 'Harga buyback', 'Selisih']}>
+        <Table head={['Kode SKU', 'Pecahan Berat', 'Harga Beli Pengguna', 'Harga Buyback Pengguna', 'Selisih Spread']}>
           {skus?.map((s) => {
             const spread = ((s.buyPrice - s.buybackPrice) / s.buyPrice) * 100
             return (
@@ -53,23 +55,23 @@ export function PricingPage() {
           })}
         </Table>
       </Card>
-      <p className="note">Harga buyback dihitung dari berat × harga buyback per gram.</p>
+      <p className="note">Harga buyback pengguna dihitung otomatis berdasarkan berat keping × harga buyback dasar per gram.</p>
       {halting && (
-        <Modal title="Hentikan transaksi" onClose={() => setHalting(false)}>
+        <Modal title="Hentikan Transaksi Emas Darurat" onClose={() => setHalting(false)}>
           <form
             className="stack"
             onSubmit={async (e) => {
               e.preventDefault()
               const reason = String(new FormData(e.currentTarget).get('reason'))
-              const done = await act(() => api.haltTrading(actor, reason), 'Transaksi dihentikan.')
+              const done = await act(() => api.haltTrading(actor, reason), 'Transaksi jual-beli emas berhasil dihentikan sementara.')
               if (done) setHalting(false)
             }}
           >
-            <Field label="Alasan">
-              <input name="reason" required />
+            <Field label="Alasan penghentian darurat" hint="Jelaskan pemicu darurat, misal: lonjakan volatilitas pasar ekstrem atau gangguan feed harga">
+              <input name="reason" required placeholder="misal: Lonjakan volatilitas pasar melebihi batas toleransi" />
             </Field>
             <Button type="submit" variant="danger">
-              Hentikan sekarang
+              Hentikan Transaksi Sekarang
             </Button>
           </form>
         </Modal>
@@ -86,16 +88,19 @@ export function FinancePage() {
 
   return (
     <>
-      <PageHeader title="Keuangan" />
+      <PageHeader
+        title="Kas & Rekonsiliasi Saldo"
+        subtitle="Pemantauan kecukupan kas nasabah, penarikan dana, serta integritas buku besar (ledger)."
+      />
       {totals && (
         <div className="stat-row">
-          <StatTile icon={Wallet} value={rupiah(totals.walletTotal)} label="Total saldo pengguna" />
-          <StatTile icon={Landmark} tint="sky" value={rupiah(totals.customerBankBalance)} label="Rekening dana pengguna" />
-          <StatTile icon={ShieldCheck} tint="pink" value={rupiah(totals.ledgerLiability)} label="Kewajiban di ledger" />
+          <StatTile icon={Wallet} value={rupiah(totals.walletTotal)} label="Total saldo dompet nasabah" />
+          <StatTile icon={Landmark} tint="sky" value={rupiah(totals.customerBankBalance)} label="Rekening kas penampung (escrow)" />
+          <StatTile icon={ShieldCheck} tint="pink" value={rupiah(totals.ledgerLiability)} label="Total kewajiban di ledger" />
         </div>
       )}
-      <Card title="Penarikan dana" flush>
-        <Table head={['Pengguna', 'Rekening', 'Nominal', 'Waktu', 'Status', '']}>
+      <Card title="Permintaan Penarikan Dana (Withdrawal)" flush>
+        <Table head={['Nama Nasabah', 'Rekening Bank Tujuan', 'Nominal Penarikan', 'Waktu Pengajuan', 'Status Transfer', 'Tindakan']}>
           {withdrawals?.map((w) => (
             <tr key={w.id}>
               <td>{w.owner}</td>
@@ -107,22 +112,22 @@ export function FinancePage() {
               </td>
               <td>
                 {actor.role === 'FINANCE' && w.status === 'FAILED' && (
-                  <Button variant="soft" onClick={() => act(() => api.retryWithdrawal(actor, w.id), 'Penarikan dikirim ulang.')}>
-                    Coba ulang
+                  <Button variant="soft" onClick={() => act(() => api.retryWithdrawal(actor, w.id), 'Instruksi penarikan dana berhasil dikirim ulang ke bank rekanan.')}>
+                    Kirim Ulang Transfer
                   </Button>
                 )}
-                {w.status === 'UNKNOWN' && <span className="small muted">Cek status ke bank dulu</span>}
+                {w.status === 'UNKNOWN' && <span className="small muted">Menunggu konfirmasi bank rekanan</span>}
               </td>
             </tr>
           ))}
         </Table>
       </Card>
-      <Card title="Rekonsiliasi" flush>
-        <Table head={['Pemeriksaan', 'Hasil', 'Keterangan']}>
+      <Card title="Uji Integritas & Keseimbangan Buku Besar" flush>
+        <Table head={['Parameter Pemeriksaan', 'Hasil Pengujian', 'Keterangan Selisih']}>
           {invariants?.map((r) => (
             <tr key={r.id}>
               <td>{r.label}</td>
-              <td>{r.ok ? <Badge tone="good">Cocok</Badge> : <Badge tone="critical">Tidak cocok</Badge>}</td>
+              <td>{r.ok ? <Badge tone="good">Sesuai</Badge> : <Badge tone="critical">Ada selisih</Badge>}</td>
               <td className="muted">{r.detail}</td>
             </tr>
           ))}
@@ -140,25 +145,28 @@ export function KycPage() {
 
   return (
     <>
-      <PageHeader title="Tinjauan KYC" />
+      <PageHeader
+        title="Verifikasi Nasabah (KYC)"
+        subtitle="Tinjau dan verifikasi dokumen identitas nasabah yang memerlukan persetujuan manual tim Compliance."
+      />
       <Card flush>
-        <Table head={['Pemohon', 'NIK', 'Alasan tinjauan', 'Status', '']}>
+        <Table head={['Nama Pemohon', 'NIK Terdaftar', 'Pemicu Tinjauan Manual', 'Status Verifikasi', 'Tindakan Tim']}>
           {cases?.map((k) => (
             <tr key={k.id}>
               <td>{k.applicant}</td>
               <td className="mono">{k.nikMasked}</td>
               <td>{k.reason}</td>
               <td>
-                {k.status === 'PENDING' && <Badge tone="warning">Menunggu</Badge>}
-                {k.status === 'APPROVED' && <Badge tone="good">Disetujui</Badge>}
+                {k.status === 'PENDING' && <Badge tone="warning">Menunggu verifikasi</Badge>}
+                {k.status === 'APPROVED' && <Badge tone="good">Terverifikasi</Badge>}
                 {k.status === 'REJECTED' && <Badge tone="critical">Ditolak</Badge>}
-                {k.decisionNote && <div className="small muted">{k.decisionNote}</div>}
+                {k.decisionNote && <div className="small muted">Catatan: {k.decisionNote}</div>}
               </td>
               <td className="row-actions">
                 {canDecide && k.status === 'PENDING' && (
                   <>
-                    <Button variant="soft" onClick={() => act(() => api.decideKyc(actor, k.id, true, ''), 'KYC disetujui.')}>
-                      Setujui
+                    <Button variant="soft" onClick={() => act(() => api.decideKyc(actor, k.id, true, ''), 'Verifikasi KYC nasabah disetujui. Akun kini aktif penuh!')}>
+                      Setujui KYC
                     </Button>
                     <Button variant="ghost" onClick={() => setRejecting(k.id)}>
                       Tolak
@@ -171,21 +179,21 @@ export function KycPage() {
         </Table>
       </Card>
       {rejecting !== undefined && (
-        <Modal title="Tolak KYC" onClose={() => setRejecting(undefined)}>
+        <Modal title="Tolak Verifikasi KYC Nasabah" onClose={() => setRejecting(undefined)}>
           <form
             className="stack"
             onSubmit={async (e) => {
               e.preventDefault()
               const note = String(new FormData(e.currentTarget).get('note'))
-              const done = await act(() => api.decideKyc(actor, rejecting, false, note), 'KYC ditolak.')
+              const done = await act(() => api.decideKyc(actor, rejecting, false, note), 'Pengajuan KYC ditolak dan alasan telah dicatat.')
               if (done) setRejecting(undefined)
             }}
           >
-            <Field label="Alasan penolakan">
-              <input name="note" required />
+            <Field label="Alasan penolakan dokumen" hint="Tulis alasan secara jelas agar dapat ditindaklanjuti oleh nasabah">
+              <input name="note" required placeholder="misal: Foto e-KTP buram dan NIK tidak terbaca jelas" />
             </Field>
             <Button type="submit" variant="danger">
-              Tolak
+              Konfirmasi Penolakan
             </Button>
           </form>
         </Modal>
@@ -198,9 +206,12 @@ export function FinancingPage() {
   const contracts = useData(() => api.listContracts())
   return (
     <>
-      <PageHeader title="Cicilan Mitra" />
+      <PageHeader
+        title="Cicilan Emas Mitra"
+        subtitle="Pemantauan kontrak cicilan emas digital nasabah yang difasilitasi oleh mitra pembiayaan resmi."
+      />
       <Card flush>
-        <Table head={['Kontrak', 'Pengguna', 'Token', 'Harga', 'Angsuran', 'Status']}>
+        <Table head={['ID Kontrak', 'Nama Nasabah', 'Token Emas Terkait', 'Total Nilai Kontrak', 'Progres Angsuran', 'Status Pembayaran']}>
           {contracts?.map((c) => (
             <tr key={c.id}>
               <td className="mono">{c.id}</td>
@@ -211,7 +222,7 @@ export function FinancingPage() {
                 {c.paidMonths} dari {c.tenorMonths} bulan
               </td>
               <td>
-                {c.status === 'ON_TIME' && <Badge tone="good">Lancar</Badge>}
+                {c.status === 'ON_TIME' && <Badge tone="good">Pembayaran lancar</Badge>}
                 {c.status === 'OVERDUE' && <Badge tone="critical">Menunggak</Badge>}
                 {c.status === 'PAID_OFF' && <Badge tone="neutral">Lunas</Badge>}
               </td>
@@ -227,9 +238,12 @@ export function AuditPage() {
   const audit = useData(() => api.listAudit())
   return (
     <>
-      <PageHeader title="Jejak Audit" />
+      <PageHeader
+        title="Jejak Audit Sistem"
+        subtitle="Rekam jejak seluruh aktivitas operasional sistem yang bersifat permanen dan tidak dapat diubah (immutable log)."
+      />
       <Card flush>
-        <Table head={['Waktu', 'Pelaku', 'Aksi', 'Objek', 'Keterangan']}>
+        <Table head={['Waktu Kejadian', 'Petugas / Sistem', 'Jenis Aktivitas', 'Objek Sasaran', 'Rincian Keterangan']}>
           {audit?.map((a) => (
             <tr key={a.id}>
               <td>{dateTime(a.at)}</td>
@@ -240,7 +254,7 @@ export function AuditPage() {
             </tr>
           ))}
         </Table>
-        {audit?.length === 0 && <Empty>Belum ada aktivitas.</Empty>}
+        {audit?.length === 0 && <Empty>Belum ada catatan aktivitas operasional yang terekam.</Empty>}
       </Card>
     </>
   )

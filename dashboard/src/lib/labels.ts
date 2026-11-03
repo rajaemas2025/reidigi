@@ -8,48 +8,48 @@ export const ROLE_LABEL: Record<Role, string> = {
   FINANCE: 'Finance',
   COMPLIANCE: 'Compliance',
   CS: 'Customer Service',
-  AUDITOR: 'Auditor',
+  AUDITOR: 'Auditor Internal',
 }
 
 export const UNIT_STATUS: Record<UnitStatus, [string, Tone]> = {
   INBOUND_QC: ['Menunggu QC', 'info'],
-  AVAILABLE: ['Tersedia', 'good'],
-  RESERVED: ['Dipesan', 'info'],
-  ALLOCATED: ['Terkunci token', 'neutral'],
-  PICKING: ['Picking', 'info'],
-  SHIPPED: ['Dikirim', 'info'],
-  READY_PICKUP: ['Siap diambil', 'info'],
-  DELIVERED: ['Diterima pengguna', 'neutral'],
-  QUARANTINE: ['Karantina', 'critical'],
+  AVAILABLE: ['Siap Dijual', 'good'],
+  RESERVED: ['Sedang Dipesan', 'info'],
+  ALLOCATED: ['Terikat Emas Digital', 'neutral'],
+  PICKING: ['Sedang Disiapkan', 'info'],
+  SHIPPED: ['Dalam Pengiriman', 'info'],
+  READY_PICKUP: ['Siap Diambil di Cabang', 'info'],
+  DELIVERED: ['Diterima Pelanggan', 'neutral'],
+  QUARANTINE: ['Karantina Khusus', 'critical'],
   WRITTEN_OFF: ['Dihapusbukukan', 'critical'],
 }
 
 export const COUNT_STATUS: Record<CountStatus, [string, Tone]> = {
-  COUNTING: ['Menghitung', 'info'],
-  RECOUNT: ['Hitung ulang', 'warning'],
-  AWAITING_APPROVAL: ['Menunggu supervisor', 'warning'],
-  AWAITING_FINANCE: ['Menunggu Finance', 'warning'],
-  APPROVED: ['Disetujui', 'good'],
+  COUNTING: ['Sedang Dihitung', 'info'],
+  RECOUNT: ['Hitung Ulang', 'warning'],
+  AWAITING_APPROVAL: ['Menunggu Supervisor', 'warning'],
+  AWAITING_FINANCE: ['Menunggu Persetujuan Finance', 'warning'],
+  APPROVED: ['Selesai & Disetujui', 'good'],
 }
 
 export const VARIANCE: Record<VarianceType, string> = {
-  MISSING: 'Tidak ditemukan',
-  UNEXPECTED: 'Seri tidak dikenal',
-  WRONG_LOCATION: 'Salah lokasi',
+  MISSING: 'Fisik Tidak Ditemukan',
+  UNEXPECTED: 'Nomor Seri Tidak Terdaftar',
+  WRONG_LOCATION: 'Salah Penempatan Lokasi',
 }
 
 export const PRINT_STATUS: Record<PrintOrder['status'], [string, Tone]> = {
-  WAITING: ['Menunggu picking', 'warning'],
-  PICKED: ['Siap dikirim', 'info'],
-  SHIPPED: ['Dikirim JNE', 'info'],
-  IN_TRANSIT: ['Dalam perjalanan ke cabang', 'info'],
-  READY_PICKUP: ['Siap diambil', 'good'],
-  DONE: ['Selesai', 'neutral'],
+  WAITING: ['Menunggu Penyiapan', 'warning'],
+  PICKED: ['Siap Dikirim / Diserahkan', 'info'],
+  SHIPPED: ['Dikirim via JNE', 'info'],
+  IN_TRANSIT: ['Menuju Cabang Tujuan', 'info'],
+  READY_PICKUP: ['Siap Diambil Nasabah', 'good'],
+  DONE: ['Selesai Diterima', 'neutral'],
 }
 
 export const WITHDRAWAL_STATUS: Record<Withdrawal['status'], [string, Tone]> = {
-  PROCESSING: ['Diproses', 'info'],
-  SUCCESS: ['Berhasil', 'good'],
-  FAILED: ['Gagal', 'critical'],
-  UNKNOWN: ['Status tidak jelas', 'warning'],
+  PROCESSING: ['Sedang Diproses', 'info'],
+  SUCCESS: ['Berhasil Ditransfer', 'good'],
+  FAILED: ['Gagal Mentransfer', 'critical'],
+  UNKNOWN: ['Menunggu Konfirmasi Bank', 'warning'],
 }

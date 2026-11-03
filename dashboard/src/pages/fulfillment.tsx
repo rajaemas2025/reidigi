@@ -19,11 +19,11 @@ export function FulfillmentPage() {
   return (
     <>
       <PageHeader
-        title="Pemenuhan Cetak"
-        subtitle="Kirim JNE atau ambil di cabang (minimal 2 gr)"
+        title="Pemenuhan Cetak Fisik"
+        subtitle="Kelola pengiriman ekspedisi dan serah terima keping fisik di cabang resmi (minimal 2 gram per penukaran)."
       />
       <Card flush>
-        <Table head={['Pesanan', 'Pengguna', 'Keping', 'Tujuan', 'Status', '']}>
+        <Table head={['ID Pesanan', 'Nama Pemilik', 'Keping Emas', 'Tujuan Pengiriman / Ambil', 'Status Pesanan', 'Tindakan']}>
           {orders?.map((o) => (
             <tr key={o.id}>
               <td className="mono">#{o.id}</td>
@@ -40,9 +40,9 @@ export function FulfillmentPage() {
               </td>
               <td>
                 {o.destination}
-                {o.trackingNumber && <div className="small muted">No. kirim {o.trackingNumber}</div>}
+                {o.trackingNumber && <div className="small muted">Resi / Surat Jalan: {o.trackingNumber}</div>}
                 {o.pickupDeadline && o.status === 'READY_PICKUP' && (
-                  <div className="small muted">Batas ambil {dateTime(o.pickupDeadline)}</div>
+                  <div className="small muted">Batas waktu ambil: {dateTime(o.pickupDeadline)}</div>
                 )}
               </td>
               <td>
@@ -52,45 +52,45 @@ export function FulfillmentPage() {
               <td>
                 {canAct && o.status === 'WAITING' && (
                   <Button variant="soft" onClick={() => setDialog({ kind: 'pick', id: o.id })}>
-                    Pindai picking
+                    Pindai keping
                   </Button>
                 )}
                 {canAct && o.status === 'PICKED' && (
                   <Button variant="soft" onClick={() => setDialog({ kind: 'ship', id: o.id })}>
-                    {o.method === 'PICKUP' ? 'Kirim ke cabang' : 'Kirim JNE'}
+                    {o.method === 'PICKUP' ? 'Kirim ke cabang' : 'Kirim via JNE'}
                   </Button>
                 )}
                 {canAct && o.status === 'IN_TRANSIT' && (
                   <Button variant="soft" onClick={() => setDialog({ kind: 'receive', id: o.id })}>
-                    Pindai tiba
+                    Konfirmasi tiba
                   </Button>
                 )}
                 {canAct && o.status === 'SHIPPED' && (
-                  <Button variant="soft" onClick={() => act(() => api.completePrintOrder(actor, o.id), 'Pesanan selesai.')}>
-                    Sudah diterima
+                  <Button variant="soft" onClick={() => act(() => api.completePrintOrder(actor, o.id), 'Pesanan cetak berhasil diselesaikan.')}>
+                    Konfirmasi diterima
                   </Button>
                 )}
                 {canAct && o.status === 'READY_PICKUP' && (
                   <Button variant="soft" onClick={() => setDialog({ kind: 'pickup', id: o.id })}>
-                    Serahkan
+                    Serahkan ke nasabah
                   </Button>
                 )}
               </td>
             </tr>
           ))}
         </Table>
-        {orders?.length === 0 && <Empty>Belum ada pesanan cetak.</Empty>}
+        {orders?.length === 0 && <Empty>Saat ini belum ada antrean pesanan cetak fisik emas.</Empty>}
       </Card>
 
       {current && dialog?.kind === 'pick' && (
         <ScanDialog
           key={current.status}
-          title={`Picking pesanan #${current.id}`}
+          title={`Pindai keping pesanan #${current.id}`}
           done={current.items.filter((i) => i.picked).length}
           total={current.items.length}
           onClose={close}
           onScan={async (serial) => {
-            const order = await act(() => api.pickPrintOrder(actor, current.id, serial), 'Seri cocok.')
+            const order = await act(() => api.pickPrintOrder(actor, current.id, serial), 'Keping cocok dan berhasil diverifikasi.')
             if (order && order.status !== 'WAITING') close()
           }}
         />
@@ -99,38 +99,41 @@ export function FulfillmentPage() {
       {current && dialog?.kind === 'receive' && (
         <ScanDialog
           key={current.status}
-          title={`Terima di ${current.destination.replace('Ambil di cabang ', '')}`}
+          title={`Penerimaan keping di ${current.destination.replace('Ambil di cabang ', 'Cabang ')}`}
           done={current.items.filter((i) => i.arrived).length}
           total={current.items.length}
           onClose={close}
           onScan={async (serial) => {
-            const order = await act(() => api.receiveAtBranch(actor, current.id, serial), 'Keping tercatat tiba.')
+            const order = await act(() => api.receiveAtBranch(actor, current.id, serial), 'Keping tercatat tiba dan masuk brankas cabang.')
             if (order && order.status !== 'IN_TRANSIT') close()
           }}
         />
       )}
 
       {current && dialog?.kind === 'ship' && (
-        <Modal title={current.method === 'PICKUP' ? 'Kirim ke cabang' : 'Kirim dengan JNE'} onClose={close}>
+        <Modal title={current.method === 'PICKUP' ? 'Kirim Pesanan ke Cabang' : 'Kirim Pesanan via JNE'} onClose={close}>
           <form
             className="stack"
             onSubmit={async (e) => {
               e.preventDefault()
               const tracking = String(new FormData(e.currentTarget).get('tracking'))
-              const done = await act(() => api.shipPrintOrder(actor, current.id, tracking), 'Pesanan dikirim.')
+              const done = await act(() => api.shipPrintOrder(actor, current.id, tracking), 'Pengiriman pesanan berhasil dicatat.')
               if (done) close()
             }}
           >
-            <Field label={current.method === 'PICKUP' ? 'Nomor pengiriman ke cabang' : 'Nomor resi JNE'}>
-              <input name="tracking" required autoFocus />
+            <Field
+              label={current.method === 'PICKUP' ? 'Nomor surat jalan pengiriman cabang' : 'Nomor resi pengiriman JNE'}
+              hint="Masukkan nomor referensi pelacakan pengiriman secara akurat"
+            >
+              <input name="tracking" required autoFocus placeholder={current.method === 'PICKUP' ? 'misal: SJ-BDG-20261103' : 'misal: JNE-012398471'} />
             </Field>
-            <Button type="submit">Catat pengiriman</Button>
+            <Button type="submit">Catat & Kirim Sekarang</Button>
           </form>
         </Modal>
       )}
 
       {current && dialog?.kind === 'pickup' && (
-        <Modal title={`Serahkan pesanan #${current.id}`} onClose={close}>
+        <Modal title={`Serah Terima Fisik Pesanan #${current.id}`} onClose={close}>
           <form
             className="stack"
             onSubmit={async (e) => {
@@ -138,19 +141,19 @@ export function FulfillmentPage() {
               const form = new FormData(e.currentTarget)
               const done = await act(
                 () => api.completePickup(actor, current.id, String(form.get('code')), form.get('identity') === 'on'),
-                'Keping diserahkan ke pengguna.',
+                'Keping emas resmi diserahkan kepada nasabah.',
               )
               if (done) close()
             }}
           >
-            <p className="note">Pengguna: {current.owner}</p>
-            <Field label="Kode pengambilan">
-              <input name="code" required inputMode="numeric" autoComplete="off" autoFocus />
+            <p className="note">Pemilik emas: <strong>{current.owner}</strong></p>
+            <Field label="Kode rahasia pengambilan" hint="Minta nasabah menunjukkan 6 digit kode dari aplikasi mereka">
+              <input name="code" required inputMode="numeric" autoComplete="off" autoFocus placeholder="6 digit kode" />
             </Field>
             <label className="check">
-              <input name="identity" type="checkbox" /> KTP sudah diperiksa dan sesuai nama pengguna
+              <input name="identity" type="checkbox" /> Saya telah memeriksa KTP fisik dan memastikan identitas sesuai dengan nama pemilik akun
             </label>
-            <Button type="submit">Serahkan keping</Button>
+            <Button type="submit">Konfirmasi Serahkan Emas</Button>
           </form>
         </Modal>
       )}
@@ -161,8 +164,8 @@ export function FulfillmentPage() {
 function progress(order: PrintOrder) {
   const total = order.items.length
   if (total < 2) return ''
-  if (order.status === 'WAITING') return `${order.items.filter((i) => i.picked).length} dari ${total} dipindai`
-  if (order.status === 'IN_TRANSIT') return `${order.items.filter((i) => i.arrived).length} dari ${total} tiba`
+  if (order.status === 'WAITING') return `${order.items.filter((i) => i.picked).length} dari ${total} keping telah dipindai`
+  if (order.status === 'IN_TRANSIT') return `${order.items.filter((i) => i.arrived).length} dari ${total} keping telah tiba di cabang`
   return ''
 }
 
@@ -181,9 +184,9 @@ function ScanDialog({
 }) {
   return (
     <Modal title={title} onClose={onClose}>
-      <ScanInput onScan={onScan} />
+      <ScanInput onScan={onScan} placeholder="Pindai barcode keping atau ketik nomor seri..." />
       <div className="scan-total">
-        <strong>{done}</strong> dari {total} keping
+        <strong>{done}</strong> dari {total} keping telah diverifikasi
       </div>
     </Modal>
   )

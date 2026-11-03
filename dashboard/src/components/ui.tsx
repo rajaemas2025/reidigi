@@ -115,7 +115,7 @@ export function Modal({ title, onClose, children }: { title: string; onClose: ()
 /** Input untuk scanner USB/Bluetooth: scanner mengetik seri lalu menekan Enter. */
 export function ScanInput({
   onScan,
-  placeholder = 'Pindai atau ketik nomor seri',
+  placeholder = 'Pindai barcode keping atau ketik nomor seri...',
   autoFocus = true,
 }: {
   onScan: (serial: string) => void | Promise<unknown>
@@ -145,7 +145,7 @@ export function ScanInput({
         spellCheck={false}
       />
       <Button type="submit" variant="dark">
-        Catat
+        Catat Keping
       </Button>
     </form>
   )

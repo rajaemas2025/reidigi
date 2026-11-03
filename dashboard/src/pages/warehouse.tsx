@@ -16,11 +16,12 @@ export function SkuPage() {
   return (
     <>
       <PageHeader
-        title="Katalog SKU"
-        actions={canEdit && <Button onClick={() => setAdding(true)}>Tambah SKU</Button>}
+        title="Katalog Produk SKU"
+        subtitle="Daftar spesifikasi pecahan emas, acuan harga transaksi, serta ketersediaan stok fisik."
+        actions={canEdit && <Button onClick={() => setAdding(true)}>Tambah Produk SKU</Button>}
       />
       <Card flush>
-        <Table head={['Kode', 'Produk', 'Berat', 'Harga beli', 'Harga buyback', 'Tersedia', 'Terkunci', 'Status', '']}>
+        <Table head={['Kode SKU', 'Nama Produk', 'Pecahan Berat', 'Harga Beli Pengguna', 'Harga Buyback', 'Siap Jual', 'Terikat Token', 'Status Penjualan', 'Aksi']}>
           {skus?.map((s) => (
             <tr key={s.id}>
               <td className="mono">{s.code}</td>
@@ -28,15 +29,15 @@ export function SkuPage() {
               <td>{gram(s.weightMg)}</td>
               <td>{rupiah(s.buyPrice)}</td>
               <td>{rupiah(s.buybackPrice)}</td>
-              <td>{s.available}</td>
-              <td>{s.locked}</td>
+              <td>{s.available} keping</td>
+              <td>{s.locked} keping</td>
               <td>
                 {!s.active ? (
                   <Badge tone="neutral">Nonaktif</Badge>
                 ) : s.available === 0 ? (
                   <Badge tone="warning">Stok habis</Badge>
                 ) : (
-                  <Badge tone="good">Aktif</Badge>
+                  <Badge tone="good">Aktif dijual</Badge>
                 )}
               </td>
               <td>
@@ -52,7 +53,7 @@ export function SkuPage() {
       </Card>
       {adding && <SkuForm onClose={() => setAdding(false)} />}
       {editing && (
-        <Modal title={`Ubah ${editing.code}`} onClose={() => setEditing(undefined)}>
+        <Modal title={`Pengaturan SKU ${editing.code}`} onClose={() => setEditing(undefined)}>
           <form
             className="stack"
             onSubmit={async (e) => {
@@ -63,15 +64,15 @@ export function SkuPage() {
                   api.updateSku(actor, editing.id, {
                     active: form.get('active') === 'on',
                   }),
-                'SKU diperbarui.',
+                'Pengaturan produk SKU berhasil diperbarui.',
               )
               if (done) setEditing(undefined)
             }}
           >
             <label className="check">
-              <input name="active" type="checkbox" defaultChecked={editing.active} /> Dijual di aplikasi
+              <input name="active" type="checkbox" defaultChecked={editing.active} /> Aktifkan penjualan produk ini di aplikasi nasabah
             </label>
-            <Button type="submit">Simpan</Button>
+            <Button type="submit">Simpan Pengaturan</Button>
           </form>
         </Modal>
       )}
@@ -82,7 +83,7 @@ export function SkuPage() {
 function SkuForm({ onClose }: { onClose: () => void }) {
   const { actor, act } = useApp()
   return (
-    <Modal title="Tambah SKU" onClose={onClose}>
+    <Modal title="Tambah Produk SKU Baru" onClose={onClose}>
       <form
         className="stack"
         onSubmit={async (e) => {
@@ -97,29 +98,29 @@ function SkuForm({ onClose }: { onClose: () => void }) {
                 buyPrice: Number(f.get('buy')),
                 buybackPrice: Number(f.get('buyback')),
               }),
-            'SKU ditambahkan.',
+            'Produk SKU baru berhasil ditambahkan.',
           )
           if (done) onClose()
         }}
       >
-        <Field label="Kode SKU">
+        <Field label="Kode SKU" hint="Kode unik produk, misal: LMRE-3G">
           <input name="code" required placeholder="LMRE-3G" />
         </Field>
-        <Field label="Nama produk">
-          <input name="product" required placeholder="LM Raja Emas" />
+        <Field label="Nama produk" hint="Nama resmi yang tampil di aplikasi nasabah">
+          <input name="product" required placeholder="LM Logam Mulia 3 gr" />
         </Field>
-        <Field label="Berat (gram)">
-          <input name="gram" required type="number" min="0.001" step="0.001" />
+        <Field label="Pecahan berat (gram)" hint="Berat bersih keping emas">
+          <input name="gram" required type="number" min="0.001" step="0.001" placeholder="3" />
         </Field>
         <div className="grid-2">
-          <Field label="Harga beli (Rp)">
-            <input name="buy" required type="number" min="1" />
+          <Field label="Harga beli pengguna (Rp)" hint="Harga saat nasabah membeli">
+            <input name="buy" required type="number" min="1" placeholder="3900000" />
           </Field>
-          <Field label="Harga buyback (Rp)">
-            <input name="buyback" required type="number" min="1" />
+          <Field label="Harga buyback (Rp)" hint="Harga saat nasabah menjual">
+            <input name="buyback" required type="number" min="1" placeholder="3720000" />
           </Field>
         </div>
-        <Button type="submit">Simpan SKU</Button>
+        <Button type="submit">Simpan Produk SKU</Button>
       </form>
     </Modal>
   )
@@ -154,34 +155,35 @@ export function StockPage() {
   return (
     <>
       <PageHeader
-        title="Stok Keping"
-        actions={canReceive && <Button onClick={() => setReceiving(true)}>Terima barang</Button>}
+        title="Stok Keping Fisik"
+        subtitle="Pelacakan nomor seri fisik, brankas penyimpanan, proses QC, dan keterikatan token digital."
+        actions={canReceive && <Button onClick={() => setReceiving(true)}>Catat Penerimaan Keping</Button>}
       />
       <div className="filters">
         <input
           aria-label="Cari seri atau token"
-          placeholder="Cari seri atau token"
+          placeholder="Cari nomor seri keping atau kode token..."
           value={q}
           onChange={(e) => setParams(e.target.value ? { q: e.target.value } : {})}
         />
-        <select aria-label="SKU" value={skuId} onChange={(e) => setSkuId(Number(e.target.value))}>
-          <option value={0}>Semua SKU</option>
+        <select aria-label="Filter SKU" value={skuId} onChange={(e) => setSkuId(Number(e.target.value))}>
+          <option value={0}>Semua jenis SKU</option>
           {skus?.map((s) => (
             <option key={s.id} value={s.id}>
-              {s.code}
+              {s.code} ({s.product})
             </option>
           ))}
         </select>
-        <select aria-label="Lokasi" value={locationId} onChange={(e) => setLocationId(Number(e.target.value))}>
-          <option value={0}>Semua lokasi</option>
+        <select aria-label="Filter Lokasi" value={locationId} onChange={(e) => setLocationId(Number(e.target.value))}>
+          <option value={0}>Semua brankas / lokasi</option>
           {locations?.map((l) => (
             <option key={l.id} value={l.id}>
               {l.name}
             </option>
           ))}
         </select>
-        <select aria-label="Status" value={status} onChange={(e) => setStatus(e.target.value as UnitStatus | '')}>
-          <option value="">Semua status</option>
+        <select aria-label="Filter Status" value={status} onChange={(e) => setStatus(e.target.value as UnitStatus | '')}>
+          <option value="">Semua status keping</option>
           {Object.entries(UNIT_STATUS).map(([value, [label]]) => (
             <option key={value} value={value}>
               {label}
@@ -189,9 +191,13 @@ export function StockPage() {
           ))}
         </select>
       </div>
-      {blindLocations.size > 0 && <p className="note">Keping di lokasi yang sedang diopname tidak ditampilkan.</p>}
+      {blindLocations.size > 0 && (
+        <p className="note">
+          Lokasi brankas yang sedang dalam proses stock opname disembunyikan sementara demi menjaga objektivitas audit (blind audit).
+        </p>
+      )}
       <Card flush>
-        <Table head={['Nomor seri', 'SKU', 'Lokasi', 'Status', 'Token', '']}>
+        <Table head={['Nomor Seri Keping', 'Kode SKU', 'Lokasi Brankas', 'Status Fisik', 'Token Kepemilikan', 'Aksi Petugas']}>
           {visible?.map((u) => (
             <tr key={u.id}>
               <td className="mono">{u.serial}</td>
@@ -204,11 +210,11 @@ export function StockPage() {
               <td className="row-actions">
                 {isSupervisor && u.status === 'INBOUND_QC' && (
                   <>
-                    <Button variant="soft" onClick={() => act(() => api.decideQc(actor, u.id, true), 'Keping lolos QC.')}>
-                      Lolos
+                    <Button variant="soft" onClick={() => act(() => api.decideQc(actor, u.id, true), 'Keping lolos QC dan siap dialokasikan.')}>
+                      Lolos QC
                     </Button>
-                    <Button variant="ghost" onClick={() => act(() => api.decideQc(actor, u.id, false), 'Keping masuk karantina.')}>
-                      Gagal
+                    <Button variant="ghost" onClick={() => act(() => api.decideQc(actor, u.id, false), 'Keping tidak memenuhi standar QC dan masuk karantina.')}>
+                      Karantina (QC)
                     </Button>
                   </>
                 )}
@@ -218,19 +224,19 @@ export function StockPage() {
                   </Button>
                 )}
                 {isSupervisor && u.status === 'QUARANTINE' && (
-                  <Button variant="soft" onClick={() => act(() => api.releaseQuarantine(actor, u.id), 'Karantina dilepas.')}>
-                    Lepas
+                  <Button variant="soft" onClick={() => act(() => api.releaseQuarantine(actor, u.id), 'Keping telah diverifikasi ulang dan status karantina dicabut.')}>
+                    Bebaskan Karantina
                   </Button>
                 )}
               </td>
             </tr>
           ))}
         </Table>
-        {visible?.length === 0 && <Empty>Tidak ada keping yang cocok.</Empty>}
+        {visible?.length === 0 && <Empty>Tidak ditemukan keping emas yang sesuai dengan kriteria pencarian.</Empty>}
       </Card>
 
       {receiving && (
-        <Modal title="Terima barang" onClose={() => setReceiving(false)}>
+        <Modal title="Catat Penerimaan Keping Emas Baru" onClose={() => setReceiving(false)}>
           <form
             className="stack"
             onSubmit={async (e) => {
@@ -243,21 +249,21 @@ export function StockPage() {
                     locationId: Number(f.get('location')),
                     serials: String(f.get('serials')).split(/[\s,]+/),
                   }),
-                'Keping masuk antrean QC.',
+                'Penerimaan keping berhasil dicatat dan masuk antrean QC.',
               )
               if (done) setReceiving(false)
             }}
           >
-            <Field label="SKU">
+            <Field label="Pilih jenis SKU produk">
               <select name="sku">
                 {skus?.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.code}
+                    {s.code} · {s.product}
                   </option>
                 ))}
               </select>
             </Field>
-            <Field label="Lokasi">
+            <Field label="Pilih lokasi brankas tujuan">
               <select name="location">
                 {locations?.map((l) => (
                   <option key={l.id} value={l.id}>
@@ -266,33 +272,33 @@ export function StockPage() {
                 ))}
               </select>
             </Field>
-            <Field label="Nomor seri" hint="Satu seri per baris">
-              <textarea name="serials" rows={5} required />
+            <Field label="Daftar nomor seri fisik" hint="Ketik atau scan barcode nomor seri keping, satu per baris atau pisahkan dengan spasi/koma">
+              <textarea name="serials" rows={5} required placeholder="misal:&#10;REI-03-9001&#10;REI-03-9002" />
             </Field>
-            <Button type="submit">Catat penerimaan</Button>
+            <Button type="submit">Simpan & Masukkan Antrean QC</Button>
           </form>
         </Modal>
       )}
 
       {quarantining && (
-        <Modal title={`Karantina ${quarantining.serial}`} onClose={() => setQuarantining(undefined)}>
+        <Modal title={`Karantina Keping #${quarantining.serial}`} onClose={() => setQuarantining(undefined)}>
           <form
             className="stack"
             onSubmit={async (e) => {
               e.preventDefault()
               const reason = String(new FormData(e.currentTarget).get('reason'))
-              const done = await act(() => api.quarantine(actor, quarantining.id, reason), 'Keping dikarantina.')
+              const done = await act(() => api.quarantine(actor, quarantining.id, reason), 'Keping berhasil dikarantina dan token nasabah telah diamankan.')
               if (done) setQuarantining(undefined)
             }}
           >
             {quarantining.tokenCode && (
-              <p className="note">Token keping ini akan dipindah ke keping lain dengan SKU sama.</p>
+              <p className="note">Perhatian: Hak kepemilikan emas digital nasabah akan otomatis dialihkan ke keping fisik lain yang sehat dengan SKU yang sama.</p>
             )}
-            <Field label="Alasan">
-              <input name="reason" required />
+            <Field label="Alasan karantina keping" hint="Jelaskan kondisi fisik atau kendala teknis keping ini">
+              <input name="reason" required placeholder="misal: kemasan rusak, goresan fisik, segel terbuka" />
             </Field>
             <Button type="submit" variant="danger">
-              Karantina keping
+              Konfirmasi Karantina
             </Button>
           </form>
         </Modal>

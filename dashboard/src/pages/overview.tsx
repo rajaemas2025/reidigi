@@ -35,27 +35,27 @@ export function OverviewPage() {
   const lowStock = skus.filter((s) => s.active && s.available <= LOW_STOCK_LIMIT).slice(0, 6)
 
   const tasks = [
-    { to: '/pemenuhan', label: 'Cetak menunggu picking', value: alerts.waitingPrint, tone: alerts.waitingPrint ? 'warning' : 'good' },
-    { to: '/keuangan', label: 'Penarikan bermasalah', value: alerts.problemWithdrawals, tone: alerts.problemWithdrawals ? 'critical' : 'good' },
-    { to: '/kyc', label: 'KYC menunggu tinjauan', value: alerts.pendingKyc, tone: alerts.pendingKyc ? 'warning' : 'good' },
+    { to: '/pemenuhan', label: 'Pesanan cetak siap disiapkan', value: alerts.waitingPrint, tone: alerts.waitingPrint ? 'warning' : 'good' },
+    { to: '/keuangan', label: 'Penarikan dana berkendala', value: alerts.problemWithdrawals, tone: alerts.problemWithdrawals ? 'critical' : 'good' },
+    { to: '/kyc', label: 'Verifikasi identitas (KYC) baru', value: alerts.pendingKyc, tone: alerts.pendingKyc ? 'warning' : 'good' },
   ].filter((t) => canOpen(actor.role, t.to)) as { to: string; label: string; value: number; tone: 'critical' | 'warning' | 'good' }[]
 
   return (
     <div className="overview">
       <div className="overview-main">
         <section className="hero">
-          <span className="hero-eyebrow">Stok gudang Jakarta</span>
+          <span className="hero-eyebrow">Brankas Pusat Jakarta</span>
           <h1>
-            {available} keping emas digital siap dijual
+            {available} keping emas fisik siap ditransaksikan
           </h1>
           {trading.halted ? (
-            <p>Transaksi sedang dihentikan: {trading.reason}</p>
+            <p>Perhatian: Transaksi jual-beli sedang dinonaktifkan sementara karena {trading.reason ? trading.reason.toLowerCase() : 'alasan operasional'}</p>
           ) : (
-            <p>Harga dari {trading.source}, diperbarui {dateTime(trading.priceUpdatedAt)}</p>
+            <p>Harga pasar terhubung dengan {trading.source}, diperbarui {dateTime(trading.priceUpdatedAt)}</p>
           )}
           {canOpen(actor.role, '/opname') && (
             <Link className="hero-cta" to="/opname">
-              Buka stock opname
+              Buka sesi stock opname
               <span>
                 <ArrowRight size={16} />
               </span>
@@ -64,43 +64,43 @@ export function OverviewPage() {
         </section>
 
         <div className="stat-row">
-          <StatTile icon={Boxes} value={available} label="Keping tersedia" />
-          <StatTile icon={Lock} tint="pink" value={locked} label="Terkunci token" />
-          <StatTile icon={Truck} tint="sky" value={alerts.waitingPrint} label="Cetak menunggu" />
+          <StatTile icon={Boxes} value={available} label="Keping siap jual" />
+          <StatTile icon={Lock} tint="pink" value={locked} label="Terikat emas digital" />
+          <StatTile icon={Truck} tint="sky" value={alerts.waitingPrint} label="Antrean cetak fisik" />
         </div>
 
         <div className="section-head">
-          <h2>Perlu tindakan</h2>
+          <h2>Perlu Perhatian & Tindakan</h2>
         </div>
         <div className="task-grid">
           {tasks.map((t) => (
             <Link key={t.label} to={t.to} className="task">
               <strong>{t.value}</strong>
               <span>{t.label}</span>
-              <Badge tone={t.tone}>{t.value ? (t.tone === 'critical' ? 'Mendesak' : 'Perlu dicek') : 'Aman'}</Badge>
+              <Badge tone={t.tone}>{t.value ? (t.tone === 'critical' ? 'Butuh segera' : 'Perlu ditinjau') : 'Semua beres'}</Badge>
             </Link>
           ))}
         </div>
 
         <div className="section-head">
-          <h2>Stok menipis</h2>
+          <h2>Ketersediaan Keping Menipis</h2>
           {canOpen(actor.role, '/sku') && (
             <Link className="link" to="/sku">
-              Lihat semua
+              Lihat seluruh katalog
             </Link>
           )}
         </div>
         <Card flush>
-          <Table head={['SKU', 'Berat', 'Tersedia', 'Harga beli', '']}>
+          <Table head={['Kode SKU', 'Pecahan Berat', 'Sisa Keping', 'Harga Beli Pengguna', 'Aksi']}>
             {lowStock.map((s) => (
               <tr key={s.id}>
                 <td className="mono">{s.code}</td>
                 <td>{gram(s.weightMg)}</td>
-                <td>{s.available}</td>
+                <td>{s.available} keping</td>
                 <td>{rupiah(s.buyPrice)}</td>
                 <td>
                   {canOpen(actor.role, '/stok') && (
-                    <Link className="round-link" to={`/stok?q=${encodeURIComponent(s.code.replace(/[-.]/g, ''))}`} aria-label={`Lihat stok ${s.code}`}>
+                    <Link className="round-link" to={`/stok?q=${encodeURIComponent(s.code.replace(/[-.]/g, ''))}`} aria-label={`Lihat detail stok keping ${s.code}`}>
                       <ArrowUpRight size={16} />
                     </Link>
                   )}
@@ -112,12 +112,12 @@ export function OverviewPage() {
       </div>
 
       <aside className="rail">
-        <h2>Statistik</h2>
+        <h2>Kilas Operasional</h2>
         <div
           className="ring"
           style={{ ['--p' as string]: `${lockedPercent}%` }}
           role="img"
-          aria-label={`${lockedPercent} persen keping terkunci token`}
+          aria-label={`${lockedPercent} persen keping emas fisik telah terikat kepemilikan token pengguna`}
         >
           <div className="ring-inner">
             <Lock size={30} />
@@ -126,18 +126,18 @@ export function OverviewPage() {
         </div>
         <div className="rail-greeting">
           <strong>
-            {actor.name}
+            Halo, {actor.name}!
           </strong>
-          <span>{lockedPercent}% keping terkunci token</span>
+          <span>{lockedPercent}% keping fisik telah terikat dengan emas digital pengguna.</span>
         </div>
 
         <div className="bars-card">
-          <div className="bars-title">Keping tersedia per berat</div>
+          <div className="bars-title">Sebaran Keping Siap Jual per Pecahan</div>
           <div className="bars">
             {bands.map((l) => (
-              <div key={l.name} className="bar-col" tabIndex={0} aria-label={`${l.name}: ${l.count} keping`}>
+              <div key={l.name} className="bar-col" tabIndex={0} aria-label={`${l.name}: ${l.count} keping siap jual`}>
                 <div className="bar-tip">
-                  {l.name}: {l.count} keping
+                  {l.name}: {l.count} keping siap jual
                 </div>
                 <span className="bar-value">{l.count}</span>
                 <div className={`bar ${l.count === maxCount ? 'bar-max' : ''}`} style={{ height: `${Math.max(6, (l.count / maxCount) * 100)}%` }} />
@@ -148,18 +148,18 @@ export function OverviewPage() {
         </div>
 
         <div className="rail-section">
-          <h2>Rekonsiliasi</h2>
+          <h2>Uji Integritas & Kesesuaian Sistem</h2>
           <div className="check-list">
             {invariants.map((r) => (
               <div key={r.id} className="check-item">
                 <span>{r.label}</span>
-                {r.ok ? <Badge tone="good">Cocok</Badge> : <Badge tone="critical">Tidak cocok</Badge>}
+                {r.ok ? <Badge tone="good">Sesuai</Badge> : <Badge tone="critical">Ada selisih</Badge>}
               </div>
             ))}
           </div>
           {failedChecks.length === 0 && (
             <div className="rail-ok">
-              <PackageCheck size={16} /> Semua cocok
+              <PackageCheck size={16} /> Data fisik & digital 100% klop
             </div>
           )}
         </div>
