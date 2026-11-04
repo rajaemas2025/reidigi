@@ -23,9 +23,9 @@ object Rules {
     fun isValidPassword(password: String) = hasMinLength(password) && hasLettersAndNumbers(password)
 
     /** Nomor setelah +62, tanpa angka 0 di depan. */
-    fun isValidIndonesianPhone(digits: String) = digits.all { it.isDigit() } && digits.startsWith("8") && digits.length in 9..12
+    fun isValidIndonesianPhone(digits: String) = digits.all { it in '0'..'9' } && digits.startsWith("8") && digits.length in 9..12
 
-    fun isValidNik(nik: String) = nik.length == 16 && nik.all { it.isDigit() }
+    fun isValidNik(nik: String) = nik.length == 16 && nik.all { it in '0'..'9' }
 
     fun isValidFullName(name: String) = name.trim().length >= 3 && name.trim().any { it.isLetter() }
 
@@ -49,7 +49,7 @@ object Rules {
     }
 
     fun isWeakPin(pin: String): Boolean {
-        if (pin.length != 6 || !pin.all { it.isDigit() }) return true
+        if (pin.length != 6 || !pin.all { it in '0'..'9' }) return true
         if (pin.toSet().size <= 2) return true
         val steps = pin.zipWithNext { a, b -> b - a }
         return steps.all { it == 1 } || steps.all { it == -1 }
