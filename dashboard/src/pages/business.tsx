@@ -10,7 +10,7 @@ export function PricingPage() {
   const trading = useData(() => api.getTrading())
   const skus = useData(() => api.listSkus())
   const [halting, setHalting] = useState(false)
-  const isTreasury = actor.role === 'TREASURY'
+  const canControlTrading = actor.role === 'FINANCE'
 
   return (
     <>
@@ -18,7 +18,7 @@ export function PricingPage() {
         title="Harga & Pasar Emas"
         subtitle={trading && `Kuotasi harga acuan dari ${trading.source} · Terakhir diperbarui ${dateTime(trading.priceUpdatedAt)}`}
         actions={
-          isTreasury &&
+          canControlTrading &&
           trading &&
           (trading.halted ? (
             <Button onClick={() => act(() => api.resumeTrading(actor), 'Transaksi jual-beli emas berhasil dibuka kembali.')}>
@@ -35,7 +35,7 @@ export function PricingPage() {
         <div className="alert">
           <Badge tone="critical">Transaksi Sedang Dihentikan</Badge>
           <span>
-            {trading.reason} · Oleh {trading.haltedBy}. Demi kepatuhan prinsip dual-control, pembukaan kembali harus dilakukan oleh personel Treasury yang berbeda.
+            {trading.reason} · Oleh {trading.haltedBy}. Demi kepatuhan prinsip dual-control, pembukaan kembali harus dilakukan oleh personel Finance yang berbeda.
           </span>
         </div>
       )}

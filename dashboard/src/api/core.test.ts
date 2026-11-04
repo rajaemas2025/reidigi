@@ -310,10 +310,11 @@ describe('hak akses dan pemeriksaan keping', () => {
   })
 
   it('transaksi hanya bisa dibuka kembali oleh orang berbeda', () => {
-    const a = user('treasury-a')
-    db.haltTrading(a, 'Harga tidak wajar')
-    expectCode(() => db.resumeTrading(a), 'MAKER_CHECKER')
-    db.resumeTrading(user('treasury-b'))
+    expectCode(() => db.haltTrading(staffA, 'Harga tidak wajar'), 'FORBIDDEN')
+    db.haltTrading(finance, 'Harga tidak wajar')
+    expectCode(() => db.resumeTrading(staffA), 'FORBIDDEN')
+    expectCode(() => db.resumeTrading(finance), 'MAKER_CHECKER')
+    db.resumeTrading(user('finance-b'))
     expect(db.getTrading().halted).toBe(false)
   })
 

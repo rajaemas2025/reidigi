@@ -531,14 +531,14 @@ export class MockDb {
   }
 
   haltTrading(actor: User, reason: string) {
-    require(actor, 'TREASURY')
+    require(actor, 'FINANCE')
     if (!reason.trim()) throw new ApiError('INVALID', 'Alasan wajib diisi.')
     this.state.trading = { ...this.state.trading, halted: true, haltedBy: actor.name, reason: reason.trim() }
     this.log(actor, 'TRADING_HALTED', 'Transaksi', reason.trim())
   }
 
   resumeTrading(actor: User) {
-    require(actor, 'TREASURY')
+    require(actor, 'FINANCE')
     if (this.state.trading.haltedBy === actor.name) {
       throw new ApiError('MAKER_CHECKER', 'Transaksi harus dibuka kembali oleh orang yang berbeda.')
     }
