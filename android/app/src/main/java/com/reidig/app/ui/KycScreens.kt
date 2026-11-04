@@ -57,10 +57,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.RadioButtonChecked
-import androidx.compose.material.icons.filled.RadioButtonUnchecked
+import androidx.compose.material.icons.filled.Sms
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
@@ -85,6 +86,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -106,6 +108,7 @@ fun KycConsentScreen(onBack: () -> Unit, onNext: () -> Unit) {
         "Verifikasi identitas",
         onBack,
         step = 1 to STEPS,
+        bottomDivider = true,
         bottom = {
             PrimaryButton("Setuju & mulai verifikasi", onNext, enabled = terms && data)
             if (!(terms && data)) {
@@ -114,13 +117,29 @@ fun KycConsentScreen(onBack: () -> Unit, onNext: () -> Unit) {
             }
         },
     ) {
-        Headline("Verifikasi identitas", "Wajib sebelum pembelian pertama. Butuh sekitar 2 menit.")
-        Spacer(Modifier.height(20.dp))
-        PolicyItem("1. Akun Anda", "Usia minimal 18 tahun dengan KTP yang berlaku. Satu orang satu akun.")
-        PolicyItem("2. Perdagangan emas", "Keping emas disimpan di gudang dan dicatat per nomor seri. Harga dikunci sebentar saat Anda bertransaksi.")
-        PolicyItem("3. Verifikasi identitas", "Kami memeriksa KTP dan wajah Anda sesuai aturan anti pencucian uang.")
-        PolicyItem("4. Privasi data", "Kami tidak menjual data Anda.")
-        Spacer(Modifier.height(8.dp))
+        Row(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Palette.Primary).padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(Color.White.copy(alpha = 0.14f)), contentAlignment = Alignment.Center) {
+                Icon(Icons.Outlined.Shield, null, tint = Palette.Gold)
+            }
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text("Verifikasi sekali untuk mulai membeli emas", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp, lineHeight = 20.sp)
+                Text("Butuh sekitar 2 menit", color = Color.White.copy(alpha = 0.75f), fontSize = 13.sp)
+            }
+        }
+        Spacer(Modifier.height(18.dp))
+        Headline("Verifikasi identitas", "Wajib sebelum pembelian pertama.")
+        Spacer(Modifier.height(16.dp))
+        Column(Modifier.fillMaxWidth().border(1.dp, Palette.Ring, RoundedCornerShape(16.dp)).padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 2.dp)) {
+            PolicyItem("1. Akun Anda", "Usia minimal 18 tahun dengan KTP yang berlaku. Satu orang satu akun.")
+            PolicyItem("2. Perdagangan emas", "Keping emas disimpan di gudang dan dicatat per nomor seri. Harga dikunci sebentar saat Anda bertransaksi.")
+            PolicyItem("3. Verifikasi identitas", "Kami memeriksa KTP dan wajah Anda sesuai aturan anti pencucian uang.")
+            PolicyItem("4. Privasi data", "Kami tidak menjual data Anda.")
+        }
+        Spacer(Modifier.height(14.dp))
         ConsentRow("Saya sudah membaca dan menyetujui Ketentuan Layanan. *", terms) { terms = it }
         ConsentRow("Saya menyetujui pemrosesan data pribadi untuk verifikasi identitas. *", data) { data = it }
         ConsentRow("Kirimkan info harga dan penawaran (opsional).", offers) { offers = it }
@@ -150,7 +169,7 @@ internal fun ConsentRow(text: String, checked: Boolean, onChange: (Boolean) -> U
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Checkbox(checked, null, colors = CheckboxDefaults.colors(checkedColor = Palette.Primary))
+        Checkbox(checked, null, colors = CheckboxDefaults.colors(checkedColor = Palette.Primary, uncheckedColor = Palette.Primary))
         Spacer(Modifier.width(10.dp))
         Text(text, fontSize = 14.sp, lineHeight = 20.sp)
     }
@@ -164,6 +183,7 @@ fun KycPhoneScreen(kyc: KycDraft, onBack: () -> Unit, onNext: () -> Unit) {
         "Nomor HP",
         onBack,
         step = 2 to STEPS,
+        bottomDivider = true,
         bottom = { PrimaryButton("Lanjut", { kyc.phone = phone; onNext() }, enabled = valid) },
     ) {
         Headline("Masukkan nomor HP")
@@ -178,6 +198,12 @@ fun KycPhoneScreen(kyc: KycDraft, onBack: () -> Unit, onNext: () -> Unit) {
             hint = "Kode verifikasi dikirim ke nomor ini.",
             error = if (phone.length >= 4 && !valid && phone.length !in 9..12) "Masukkan nomor HP yang valid." else if (phone.isNotEmpty() && !phone.startsWith("8")) "Nomor HP diawali angka 8." else null,
         )
+        Spacer(Modifier.height(14.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Outlined.Lock, null, tint = Palette.InkSoft, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("Data Anda dienkripsi saat dikirim.", color = Palette.InkSoft, fontSize = 13.sp)
+        }
     }
 }
 
@@ -192,13 +218,14 @@ fun KycChannelScreen(kyc: KycDraft, onBack: () -> Unit, onNext: () -> Unit) {
         "Kirim kode",
         onBack,
         step = 2 to STEPS,
+        bottomDivider = true,
         bottom = { PrimaryButton("Kirim kode lewat $channel", { kyc.channel = channel; onNext() }) },
     ) {
         Headline("Kirim kode lewat apa?", "Ke nomor +62 ${kyc.phone}")
         Spacer(Modifier.height(24.dp))
-        ChannelCard("WhatsApp", "Pakai kuota data", channel == "WhatsApp") { channel = "WhatsApp" }
+        ChannelCard("WhatsApp", "Pakai kuota data", Icons.AutoMirrored.Filled.Chat, Color(0xFF128C4F), channel == "WhatsApp") { channel = "WhatsApp" }
         Spacer(Modifier.height(12.dp))
-        ChannelCard("SMS", "Mungkin ada biaya dari operator", channel == "SMS") { channel = "SMS" }
+        ChannelCard("SMS", "Mungkin ada biaya dari operator", Icons.Filled.Sms, Palette.Primary, channel == "SMS") { channel = "SMS" }
     }
 }
 
@@ -207,23 +234,33 @@ fun KycChannelScreen(kyc: KycDraft, onBack: () -> Unit, onNext: () -> Unit) {
 private fun KycChannelPreview() = ReidigTheme { KycChannelScreen(previewKyc(), {}, {}) }
 
 @Composable
-private fun ChannelCard(title: String, subtitle: String, selected: Boolean, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(14.dp)
+private fun ChannelCard(title: String, subtitle: String, icon: ImageVector, tint: Color, selected: Boolean, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(16.dp)
     Row(
-        Modifier.fillMaxWidth().clip(shape).background(if (selected) Palette.Lavender else Color.White)
-            .border(if (selected) BorderStroke(1.5.dp, Palette.Primary) else BorderStroke(1.dp, Palette.Line), shape)
+        Modifier.fillMaxWidth()
+            .then(if (selected) Modifier.border(3.dp, Palette.Ring, RoundedCornerShape(18.dp)).padding(3.dp) else Modifier.padding(3.dp))
+            .clip(shape)
+            .background(if (selected) Palette.Lavender else Color.White)
+            .border(if (selected) BorderStroke(1.5.dp, Palette.Primary) else BorderStroke(1.5.dp, Palette.Line), shape)
             .clickable(role = Role.RadioButton, onClick = onClick).padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        Box(Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(tint), contentAlignment = Alignment.Center) {
+            Icon(icon, null, tint = Color.White)
+        }
+        Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
             Text(title, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
             Text(subtitle, color = Palette.InkSoft, fontSize = 13.sp)
         }
-        Icon(
-            if (selected) Icons.Filled.RadioButtonChecked else Icons.Filled.RadioButtonUnchecked,
-            null,
-            tint = if (selected) Palette.Primary else Palette.Line,
-        )
+        Spacer(Modifier.width(8.dp))
+        if (selected) {
+            Box(Modifier.size(24.dp).clip(CircleShape).background(Palette.Primary), contentAlignment = Alignment.Center) {
+                Icon(Icons.Filled.Check, null, tint = Color.White, modifier = Modifier.size(15.dp))
+            }
+        } else {
+            Box(Modifier.size(24.dp).border(1.5.dp, Palette.DisabledText, CircleShape))
+        }
     }
 }
 
@@ -689,23 +726,39 @@ private fun KycPinPreview() = ReidigTheme { KycPinScreen(rememberPreviewEnv(fals
 
 @Composable
 fun KycVerifiedScreen(onDone: () -> Unit) {
-    Column(
-        Modifier.fillMaxSize().background(NightGradient).statusBarsPadding().navigationBarsPadding().padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Spacer(Modifier.weight(1f))
-        Box(Modifier.size(96.dp).clip(CircleShape).background(Color.White), contentAlignment = Alignment.Center) {
-            Box(Modifier.size(80.dp).clip(CircleShape).background(Palette.Mint), contentAlignment = Alignment.Center) {
-                Icon(Icons.Filled.Check, null, tint = Color.White, modifier = Modifier.size(48.dp))
+    Box(Modifier.fillMaxSize().background(NightGradient)) {
+        Canvas(Modifier.fillMaxSize()) { drawConfetti() }
+        Column(
+            Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Spacer(Modifier.weight(1f))
+            Box(contentAlignment = Alignment.TopEnd) {
+                GoldBarArt(200.dp, Modifier.padding(top = 18.dp, end = 18.dp))
+                Box(Modifier.size(62.dp).clip(CircleShape).background(Color.White), contentAlignment = Alignment.Center) {
+                    Box(Modifier.size(50.dp).clip(CircleShape).background(Palette.Mint), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Filled.Check, null, tint = Color.White, modifier = Modifier.size(30.dp))
+                    }
+                }
             }
+            Spacer(Modifier.height(28.dp))
+            Text("Verifikasi selesai", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 28.sp)
+            Spacer(Modifier.height(8.dp))
+            Text("Sekarang Anda bisa membeli emas.", color = Color.White.copy(alpha = 0.8f), textAlign = TextAlign.Center)
+            Spacer(Modifier.height(24.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                listOf("Identitas\nterverifikasi", "Wajah\ncocok", "PIN\naman").forEach { label ->
+                    Column(Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).background(Color.White.copy(alpha = 0.1f)).padding(12.dp)) {
+                        Icon(Icons.Filled.Check, null, tint = Palette.Mint, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.height(6.dp))
+                        Text(label, color = Color.White, fontSize = 14.sp, lineHeight = 19.sp)
+                    }
+                }
+            }
+            Spacer(Modifier.weight(1f))
+            LightButton("Beli emas", onDone)
+            Spacer(Modifier.height(12.dp))
         }
-        Spacer(Modifier.height(28.dp))
-        Text("Verifikasi selesai", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 28.sp)
-        Spacer(Modifier.height(8.dp))
-        Text("Sekarang Anda bisa membeli emas.", color = Color.White.copy(alpha = 0.8f), textAlign = TextAlign.Center)
-        Spacer(Modifier.weight(1f))
-        LightButton("Beli emas", onDone)
-        Spacer(Modifier.height(12.dp))
     }
 }
 

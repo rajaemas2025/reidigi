@@ -19,7 +19,7 @@ export function FulfillmentPage() {
   return (
     <>
       <PageHeader
-        title="Pemenuhan Cetak Fisik"
+        title="Tracking Cetak Fisik"
         subtitle="Kelola pengiriman ekspedisi dan serah terima keping fisik di cabang resmi (minimal 2 gram per penukaran)."
       />
       <Card flush>

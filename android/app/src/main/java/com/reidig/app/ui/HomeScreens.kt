@@ -227,10 +227,11 @@ private fun QuickAction(label: String, icon: ImageVector, onClick: () -> Unit) {
 }
 
 @Composable
-fun CatalogScreen(env: AppEnv, onSelect: (String) -> Unit) {
+fun CatalogScreen(env: AppEnv, header: @Composable () -> Unit = {}, onSelect: (String) -> Unit) {
     val state by env.repo.state.collectAsStateWithLifecycle()
     Column(Modifier.fillMaxSize().background(Palette.Paper).statusBarsPadding()) {
-        TopTitleBar("Beli Emas", null)
+        TopTitleBar("Transaksi", null)
+        header()
         LazyColumn(
             contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -464,7 +465,7 @@ internal fun PaymentOption(title: String, detail: String, selected: Boolean, onC
             .clickable(role = Role.RadioButton, onClick = onClick).padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        RadioButton(selected, null, colors = RadioButtonDefaults.colors(selectedColor = Palette.Primary))
+        RadioButton(selected, null, colors = RadioButtonDefaults.colors(selectedColor = Palette.Primary, unselectedColor = Palette.Primary))
         Spacer(Modifier.width(10.dp))
         Column {
             Text(title, fontWeight = FontWeight.SemiBold)

@@ -287,3 +287,13 @@ Alur pengguna: simulasi, lembar perjanjian, ajukan, bayar uang muka, lalu token 
 **Bukti persetujuan wajib disimpan permanen** di `financing_agreements` dan tidak boleh diubah: pengguna, versi dan hash isi perjanjian, ringkasan angka yang ditampilkan (harga, uang muka, tenor, angsuran), waktu, perangkat, dan alamat IP. Setiap perubahan isi perjanjian harus menjadi versi baru.
 
 Isi perjanjian perlu ditinjau tim legal dan disesuaikan dengan kontrak mitra sebelum dipakai. Kalau mitra perlu menilai kredit lebih dulu, tambahkan status menunggu persetujuan di antara langkah 3 dan 4, dan perpanjang masa tahan keping sesuai kesepakatan dengan mitra.
+
+### 6.4 Koreksi Data Keping
+
+`PATCH /admin/v1/units/{id}` memperbaiki kesalahan pencatatan, misalnya salah ketik nomor seri. Hanya untuk Supervisor Gudang.
+
+- **Bisa diubah:** nomor seri, SKU, dan lokasi. Status keping tidak berubah lewat endpoint ini.
+- **Syarat keping:** status `INBOUND_QC`, `AVAILABLE`, atau `QUARANTINE`, dan tidak terikat token. Selain itu tolak dengan `UNIT_LOCKED`.
+- **Saat opname:** tolak dengan `COUNT_IN_PROGRESS` kalau lokasi asal atau tujuan sedang diopname.
+- **Validasi:** nomor seri harus unik, dan alasan wajib diisi.
+- **Audit:** catat nilai lama, nilai baru, alasan, dan petugas.

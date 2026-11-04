@@ -135,6 +135,7 @@ export function StockPage() {
   const [status, setStatus] = useState<UnitStatus | ''>('')
   const [receiving, setReceiving] = useState(false)
   const [quarantining, setQuarantining] = useState<UnitRow>()
+  const [editing, setEditing] = useState<UnitRow>()
 
   const skus = useData(() => api.listSkus())
   const locations = useData(() => api.listLocations())
@@ -208,6 +209,11 @@ export function StockPage() {
               </td>
               <td className="mono small">{u.tokenCode ?? '–'}</td>
               <td className="row-actions">
+                {isSupervisor && !u.tokenCode && ['INBOUND_QC', 'AVAILABLE', 'QUARANTINE'].includes(u.status) && (
+                  <Button variant="ghost" onClick={() => setEditing(u)}>
+                    Ubah
+                  </Button>
+                )}
                 {isSupervisor && u.status === 'INBOUND_QC' && (
                   <>
                     <Button variant="soft" onClick={() => act(() => api.decideQc(actor, u.id, true), 'Keping lolos QC dan siap dialokasikan.')}>
@@ -276,6 +282,55 @@ export function StockPage() {
               <textarea name="serials" rows={5} required placeholder="misal:&#10;REI-03-9001&#10;REI-03-9002" />
             </Field>
             <Button type="submit">Simpan & Masukkan Antrean QC</Button>
+          </form>
+        </Modal>
+      )}
+
+      {editing && (
+        <Modal title={`Ubah Keping #${editing.serial}`} onClose={() => setEditing(undefined)}>
+          <form
+            className="stack"
+            onSubmit={async (e) => {
+              e.preventDefault()
+              const f = new FormData(e.currentTarget)
+              const done = await act(
+                () =>
+                  api.updateUnit(actor, editing.id, {
+                    serial: String(f.get('serial')),
+                    skuId: Number(f.get('sku')),
+                    locationId: Number(f.get('location')),
+                    reason: String(f.get('reason')),
+                  }),
+                'Data keping berhasil diperbarui.',
+              )
+              if (done) setEditing(undefined)
+            }}
+          >
+            <Field label="Nomor seri fisik">
+              <input name="serial" required defaultValue={editing.serial} autoComplete="off" spellCheck={false} />
+            </Field>
+            <Field label="Jenis SKU produk">
+              <select name="sku" defaultValue={editing.skuId}>
+                {skus?.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.code} · {s.product}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Lokasi brankas">
+              <select name="location" defaultValue={editing.locationId}>
+                {locations?.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Alasan perubahan" hint="Tercatat di Jejak Audit">
+              <input name="reason" required placeholder="misal: salah ketik nomor seri saat penerimaan" />
+            </Field>
+            <Button type="submit">Simpan Perubahan</Button>
           </form>
         </Modal>
       )}

@@ -20,6 +20,7 @@ import { ApiError } from './types'
 
 const CLOSED_TOKENS: TokenStatus[] = ['RETURNED', 'PRINTED', 'CANCELLED']
 const PHYSICALLY_PRESENT: UnitStatus[] = ['AVAILABLE', 'RESERVED', 'ALLOCATED', 'PICKING', 'READY_PICKUP', 'QUARANTINE', 'INBOUND_QC']
+const EDITABLE_UNIT: UnitStatus[] = ['INBOUND_QC', 'AVAILABLE', 'QUARANTINE']
 const LOCKED_UNIT: UnitStatus[] = ['ALLOCATED', 'PICKING', 'SHIPPED', 'READY_PICKUP', 'QUARANTINE']
 /** Selisih hilang seberat ini atau lebih memerlukan persetujuan Finance. */
 const FINANCE_APPROVAL_MG = 100_000
@@ -154,6 +155,44 @@ export class MockDb {
     }
     this.log(actor, 'UNITS_RECEIVED', sku.code, `${serials.length} keping masuk QC`)
     return serials.length
+  }
+
+  /**
+   * Koreksi data keping, misalnya salah ketik nomor seri. Status keping tidak diubah di sini,
+   * dan keping yang terikat token atau sedang diproses tidak bisa dikoreksi.
+   */
+  updateUnit(actor: User, unitId: number, input: { serial: string; skuId: number; locationId: number; reason: string }) {
+    require(actor, 'WAREHOUSE_SUPERVISOR')
+    const unit = this.unit(unitId)
+    if (this.openToken(unitId) || !EDITABLE_UNIT.includes(unit.status)) {
+      throw new ApiError('UNIT_LOCKED', 'Keping yang terikat token atau sedang diproses tidak bisa diubah.')
+    }
+    const reason = input.reason.trim()
+    if (!reason) throw new ApiError('INVALID', 'Alasan perubahan wajib diisi.')
+    const serial = input.serial.trim().toUpperCase()
+    if (!serial) throw new ApiError('INVALID', 'Nomor seri wajib diisi.')
+    if (this.state.units.some((u) => u.id !== unitId && u.serial === serial)) {
+      throw new ApiError('DUPLICATE', `Nomor seri sudah terdaftar: ${serial}`)
+    }
+    const sku = this.sku(input.skuId)
+    const location = this.state.locations.find((l) => l.id === input.locationId)
+    if (!location) throw new ApiError('NOT_FOUND', 'Lokasi tidak ditemukan.')
+    const locationChanged = input.locationId !== unit.locationId
+    const counted = (id: number) => this.state.counts.some((c) => c.locationId === id && c.status !== 'APPROVED')
+    if (counted(unit.locationId) || (locationChanged && counted(input.locationId))) {
+      throw new ApiError('COUNT_IN_PROGRESS', 'Lokasi ini sedang diopname. Selesaikan opname lebih dulu.')
+    }
+    const locationName = (id: number) => this.state.locations.find((l) => l.id === id)?.name ?? '-'
+    const changes = [
+      serial !== unit.serial && `Seri ${unit.serial} → ${serial}`,
+      sku.id !== unit.skuId && `SKU ${this.sku(unit.skuId).code} → ${sku.code}`,
+      locationChanged && `Lokasi ${locationName(unit.locationId)} → ${location.name}`,
+    ].filter(Boolean)
+    if (!changes.length) throw new ApiError('INVALID', 'Belum ada data yang diubah.')
+    unit.serial = serial
+    unit.skuId = sku.id
+    unit.locationId = location.id
+    this.log(actor, 'UNIT_EDITED', serial, `${changes.join('; ')}. Alasan: ${reason}`)
   }
 
   decideQc(actor: User, unitId: number, pass: boolean) {

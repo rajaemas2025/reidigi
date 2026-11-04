@@ -35,7 +35,7 @@ export function OverviewPage() {
   const lowStock = skus.filter((s) => s.active && s.available <= LOW_STOCK_LIMIT).slice(0, 6)
 
   const tasks = [
-    { to: '/pemenuhan', label: 'Pesanan cetak siap disiapkan', value: alerts.waitingPrint, tone: alerts.waitingPrint ? 'warning' : 'good' },
+    { to: '/cetak', label: 'Pesanan cetak siap disiapkan', value: alerts.waitingPrint, tone: alerts.waitingPrint ? 'warning' : 'good' },
     { to: '/keuangan', label: 'Penarikan dana berkendala', value: alerts.problemWithdrawals, tone: alerts.problemWithdrawals ? 'critical' : 'good' },
     { to: '/kyc', label: 'Verifikasi identitas (KYC) baru', value: alerts.pendingKyc, tone: alerts.pendingKyc ? 'warning' : 'good' },
   ].filter((t) => canOpen(actor.role, t.to)) as { to: string; label: string; value: number; tone: 'critical' | 'warning' | 'good' }[]
@@ -112,7 +112,7 @@ export function OverviewPage() {
       </div>
 
       <aside className="rail">
-        <h2>Kilas Operasional</h2>
+        <h2>Sekilas Operasional</h2>
         <div
           className="ring"
           style={{ ['--p' as string]: `${lockedPercent}%` }}

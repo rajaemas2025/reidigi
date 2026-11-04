@@ -38,14 +38,14 @@ interface NavItem {
 }
 
 const NAV: { group: string; items: NavItem[] }[] = [
-  { group: 'Dasbor Utama', items: [{ to: '/', label: 'Ringkasan Eksekutif', icon: LayoutGrid, roles: ALL }] },
+  { group: 'Dasbor Utama', items: [{ to: '/', label: 'Ringkasan', icon: LayoutGrid, roles: ALL }] },
   {
     group: 'Operasional Brankas',
     items: [
       { to: '/sku', label: 'Katalog Produk SKU', icon: Tags, roles: STOCK_READERS },
       { to: '/stok', label: 'Stok Keping Fisik', icon: Boxes, roles: STOCK_READERS },
       { to: '/opname', label: 'Stock Opname Brankas', icon: ClipboardCheck, roles: ['WAREHOUSE_STAFF', 'WAREHOUSE_SUPERVISOR', 'FINANCE', 'AUDITOR'] },
-      { to: '/pemenuhan', label: 'Pemenuhan Cetak Fisik', icon: PackageOpen, roles: ['WAREHOUSE_STAFF', 'WAREHOUSE_SUPERVISOR', 'AUDITOR'] },
+      { to: '/cetak', label: 'Cetak Fisik', icon: PackageOpen, roles: ['WAREHOUSE_STAFF', 'WAREHOUSE_SUPERVISOR', 'AUDITOR'] },
     ],
   },
   {
@@ -196,7 +196,7 @@ function Shell() {
             <Route path="/stok" element={<Guard path="/stok"><StockPage /></Guard>} />
             <Route path="/opname" element={<Guard path="/opname"><CountsPage /></Guard>} />
             <Route path="/opname/:id" element={<Guard path="/opname"><CountDetailPage /></Guard>} />
-            <Route path="/pemenuhan" element={<Guard path="/pemenuhan"><FulfillmentPage /></Guard>} />
+            <Route path="/cetak" element={<Guard path="/cetak"><FulfillmentPage /></Guard>} />
             <Route path="/harga" element={<Guard path="/harga"><PricingPage /></Guard>} />
             <Route path="/keuangan" element={<Guard path="/keuangan"><FinancePage /></Guard>} />
             <Route path="/cicilan" element={<Guard path="/cicilan"><FinancingPage /></Guard>} />

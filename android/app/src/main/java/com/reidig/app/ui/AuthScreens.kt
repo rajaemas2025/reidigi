@@ -2,6 +2,8 @@ package com.reidig.app.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,20 +12,19 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.PersonOutline
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -39,17 +40,21 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.reidig.app.R
 import com.reidig.shared.MockRepository
 import com.reidig.shared.ReidigException
 import com.reidig.shared.Rules
+import com.reidig.shared.rupiah
 import kotlinx.coroutines.delay
 import java.time.LocalDate
 
@@ -70,10 +75,12 @@ fun SplashScreen(onDone: () -> Unit) {
         onDone()
     }
     Column(
-        Modifier.fillMaxSize().background(NightGradient).statusBarsPadding().navigationBarsPadding().padding(24.dp),
+        Modifier.fillMaxSize().background(NightGradient).background(GlowGradient).statusBarsPadding().navigationBarsPadding().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Spacer(Modifier.weight(1f))
+        GoldBarArt(170.dp)
+        Spacer(Modifier.height(24.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             BrandMark()
             Spacer(Modifier.width(12.dp))
@@ -92,60 +99,89 @@ fun SplashScreen(onDone: () -> Unit) {
 private fun SplashPreview() = ReidigTheme { SplashScreen {} }
 
 @Composable
-fun WelcomeScreen(onLogin: () -> Unit, onRegister: () -> Unit) {
+fun WelcomeScreen(env: AppEnv, onLogin: () -> Unit, onRegister: () -> Unit) {
+    val state by env.repo.state.collectAsStateWithLifecycle()
     Column(
-        Modifier.fillMaxSize().background(Palette.Paper).statusBarsPadding().navigationBarsPadding().padding(24.dp),
+        Modifier.fillMaxSize().background(NightGradient).background(GlowGradient).statusBarsPadding().navigationBarsPadding().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            BrandMark(40)
-            Spacer(Modifier.width(10.dp))
-            Text("REIDIG", color = Palette.Primary, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            BrandMark(42)
+            Spacer(Modifier.width(12.dp))
+            Text("REIDIG", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp)
         }
         Spacer(Modifier.weight(1f))
-        Image(
-            painterResource(R.drawable.onboarding_gold),
-            contentDescription = null,
-            contentScale = ContentScale.Fit,
-            modifier = Modifier.fillMaxWidth().height(320.dp),
-        )
-        Spacer(Modifier.height(24.dp))
+        Column(
+            Modifier.fillMaxWidth(0.82f).clip(RoundedCornerShape(16.dp)).background(Color.White.copy(alpha = 0.12f)).padding(16.dp),
+        ) {
+            Text("Harga emas / gram", color = Color.White.copy(alpha = 0.75f), fontSize = 13.sp)
+            Spacer(Modifier.height(2.dp))
+            Text(rupiah(state.sku("LMRE-1G").buyPrice), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 24.sp)
+            Spacer(Modifier.height(4.dp))
+            Text("Diperbarui ${state.priceUpdatedAtLabel}", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
+        }
+        Spacer(Modifier.height(36.dp))
+        GoldBarArt(150.dp)
+        Spacer(Modifier.height(26.dp))
         Text(
             "Beli dan simpan emas asli\nlewat aplikasi",
-            color = Palette.Primary,
-            fontWeight = FontWeight.Medium,
-            fontSize = 20.sp,
-            lineHeight = 27.sp,
+            color = Color.White,
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = 26.sp,
+            lineHeight = 33.sp,
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.weight(1f))
-        PrimaryButton("Masuk", onLogin)
-        Spacer(Modifier.height(14.dp))
-        SecondaryButton("Buat akun", onRegister)
+        LightButton("Buat akun", onRegister)
+        Spacer(Modifier.height(12.dp))
+        GhostOnDarkButton("Masuk", onLogin)
         Spacer(Modifier.height(16.dp))
     }
 }
 
 @ScreenPreview
 @Composable
-private fun WelcomePreview() = ReidigTheme { WelcomeScreen({}, {}) }
+private fun WelcomePreview() = ReidigTheme { WelcomeScreen(rememberPreviewEnv(false), {}, {}) }
+
+/** Kolom kata sandi dengan tombol tampilkan dan sembunyikan. */
+@Composable
+private fun PasswordField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String = "",
+    error: String? = null,
+) {
+    var visible by remember { mutableStateOf(false) }
+    FormField(
+        label,
+        value,
+        onValueChange,
+        placeholder = placeholder,
+        error = error,
+        keyboardType = KeyboardType.Password,
+        password = !visible,
+        trailing = {
+            Text(
+                if (visible) "Sembunyikan" else "Tampilkan",
+                color = Palette.Primary,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp,
+                modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { visible = !visible }.padding(horizontal = 12.dp, vertical = 8.dp),
+            )
+        },
+    )
+}
 
 @Composable
-private fun darkFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = Color.White,
-    unfocusedBorderColor = Color.White.copy(alpha = 0.8f),
-    errorBorderColor = Color(0xFFFFB4A6),
-    focusedTextColor = Color.White,
-    unfocusedTextColor = Color.White,
-    errorTextColor = Color.White,
-    cursorColor = Color.White,
-    focusedContainerColor = Color.Transparent,
-    unfocusedContainerColor = Color.Transparent,
-    errorContainerColor = Color.Transparent,
-)
-
-@Composable
-fun LoginScreen(env: AppEnv, onLoggedIn: () -> Unit, onRegister: () -> Unit, onForgot: () -> Unit) {
+fun LoginScreen(
+    env: AppEnv,
+    onBack: () -> Unit,
+    onLoggedIn: () -> Unit,
+    onRegister: () -> Unit,
+    onForgot: () -> Unit,
+    onGoogle: () -> Unit,
+) {
     var email by rememberSaveable { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
@@ -163,74 +199,106 @@ fun LoginScreen(env: AppEnv, onLoggedIn: () -> Unit, onRegister: () -> Unit, onF
         loading = false
     }
 
-    Column(
-        Modifier.fillMaxSize().background(NightGradient).statusBarsPadding().navigationBarsPadding().imePadding()
-            .verticalScroll(rememberScrollState()).padding(horizontal = 24.dp),
+    FormScreen(
+        "",
+        onBack,
+        bottomDivider = true,
+        bottom = {
+            PrimaryButton("Masuk", { loading = true }, enabled = email.isNotBlank() && password.isNotBlank(), loading = loading)
+            Spacer(Modifier.height(6.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                Text("Baru di sini?", color = Palette.InkSoft, fontSize = 14.sp)
+                TextLink("Buat akun", onRegister)
+            }
+        },
     ) {
-        Spacer(Modifier.height(72.dp))
-        Text("Halo,\nSelamat datang kembali!", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 27.sp, lineHeight = 36.sp)
-        Spacer(Modifier.height(32.dp))
-
-        Text("Email", color = Color.White, fontWeight = FontWeight.Medium)
-        Spacer(Modifier.height(8.dp))
-        OutlinedTextField(
-            email,
-            { email = it; error = null },
-            placeholder = { Text("Masukkan email", color = Color.White.copy(alpha = 0.7f)) },
-            singleLine = true,
-            isError = error != null,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            shape = RoundedCornerShape(12.dp),
-            colors = darkFieldColors(),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(Modifier.height(20.dp))
-        Text("Kata sandi", color = Color.White, fontWeight = FontWeight.Medium)
-        Spacer(Modifier.height(8.dp))
-        OutlinedTextField(
-            password,
-            { password = it; error = null },
-            placeholder = { Text("Masukkan kata sandi", color = Color.White.copy(alpha = 0.7f)) },
-            singleLine = true,
-            isError = error != null,
-            visualTransformation = if (password.isEmpty()) VisualTransformation.None else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            shape = RoundedCornerShape(12.dp),
-            colors = darkFieldColors(),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
-            TextLink("Lupa kata sandi?", onForgot, color = Color.White)
-        }
-        error?.let {
-            ErrorLine(it, color = Color(0xFFFFB4A6))
-            Spacer(Modifier.height(10.dp))
-        }
-        Spacer(Modifier.height(8.dp))
-        LightButton("Masuk", { loading = true }, enabled = !loading && email.isNotBlank() && password.isNotBlank())
-        Spacer(Modifier.height(18.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            HorizontalDivider(Modifier.weight(1f), color = Color.White.copy(alpha = 0.7f))
-            Text("atau", color = Color.White, modifier = Modifier.padding(horizontal = 16.dp))
-            HorizontalDivider(Modifier.weight(1f), color = Color.White.copy(alpha = 0.7f))
-        }
-        Spacer(Modifier.height(18.dp))
-        GhostOnDarkButton("Masuk dengan Google", {
-            env.repo.loginWithGoogle()
-            onLoggedIn()
-        })
-        Spacer(Modifier.height(16.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-            Text("Baru di sini?", color = Color.White.copy(alpha = 0.8f))
-            TextLink("Buat akun", onRegister, color = Color.White)
+            BrandMark(40)
+            Spacer(Modifier.width(10.dp))
+            Text("REIDIG", color = Palette.Primary, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
         }
         Spacer(Modifier.height(24.dp))
+        Headline("Halo, selamat datang kembali!")
+        Spacer(Modifier.height(24.dp))
+        FormField(
+            "Email",
+            email,
+            { email = it; error = null },
+            placeholder = "Masukkan email",
+            keyboardType = KeyboardType.Email,
+        )
+        Spacer(Modifier.height(16.dp))
+        PasswordField("Kata sandi", password, { password = it; error = null }, placeholder = "Masukkan kata sandi", error = error)
+        Spacer(Modifier.height(6.dp))
+        TextLink("Lupa kata sandi?", onForgot, Modifier.offset(x = (-6).dp))
+        Spacer(Modifier.height(14.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            HorizontalDivider(Modifier.weight(1f), color = Palette.Line)
+            Text("atau", color = Palette.InkSoft, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 12.dp))
+            HorizontalDivider(Modifier.weight(1f), color = Palette.Line)
+        }
+        Spacer(Modifier.height(14.dp))
+        GoogleButton("Masuk dengan Google", onGoogle)
     }
 }
 
 @ScreenPreview
 @Composable
-private fun LoginPreview() = ReidigTheme { LoginScreen(rememberPreviewEnv(), {}, {}, {}) }
+private fun LoginPreview() = ReidigTheme { LoginScreen(rememberPreviewEnv(false), {}, {}, {}, {}, {}) }
+
+/** Tiruan untuk uji alur. Di versi rilis diganti pemilih akun bawaan Android lewat Credential Manager. */
+@Composable
+fun GoogleAccountScreen(onBack: () -> Unit, onSelected: () -> Unit) {
+    FormScreen("", onBack) {
+        Spacer(Modifier.height(8.dp))
+        Image(painterResource(R.drawable.ic_google), null, Modifier.size(36.dp).align(Alignment.CenterHorizontally))
+        Spacer(Modifier.height(18.dp))
+        Text("Pilih akun", fontSize = 24.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        Spacer(Modifier.height(6.dp))
+        Text(
+            buildAnnotatedString {
+                append("untuk melanjutkan ke ")
+                withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = Palette.Primary)) { append("REIDIG") }
+            },
+            color = Palette.InkSoft,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(24.dp))
+        HorizontalDivider(color = Palette.Line)
+        Row(
+            Modifier.fillMaxWidth().clickable(onClick = onSelected).padding(vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.size(40.dp).clip(CircleShape).background(Palette.Primary), contentAlignment = Alignment.Center) {
+                Text("P", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+            Spacer(Modifier.width(14.dp))
+            Column {
+                Text("Pengguna", fontWeight = FontWeight.Medium, fontSize = 16.sp)
+                Text("pengguna@gmail.com", color = Palette.InkSoft, fontSize = 14.sp)
+            }
+        }
+        HorizontalDivider(color = Palette.Line)
+        Row(
+            Modifier.fillMaxWidth().clickable(onClick = onBack).padding(vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.size(40.dp).clip(CircleShape).border(1.dp, Palette.Line, CircleShape), contentAlignment = Alignment.Center) {
+                Icon(Icons.Outlined.PersonOutline, null, tint = Palette.InkSoft)
+            }
+            Spacer(Modifier.width(14.dp))
+            Text("Gunakan akun lain", fontWeight = FontWeight.Medium, fontSize = 16.sp)
+        }
+        HorizontalDivider(color = Palette.Line)
+        Spacer(Modifier.height(18.dp))
+        Text("REIDIG menerima nama dan alamat email Anda. Kata sandi Google tidak dibagikan.", color = Palette.InkSoft, fontSize = 13.sp, lineHeight = 19.sp)
+    }
+}
+
+@ScreenPreview
+@Composable
+private fun GoogleAccountPreview() = ReidigTheme { GoogleAccountScreen({}, {}) }
 
 @Composable
 fun ForgotPasswordScreen(onBack: () -> Unit) {
@@ -264,29 +332,43 @@ fun RegisterEmailScreen(signup: SignupDraft, onBack: () -> Unit, onSent: () -> U
         "Buat akun",
         onBack,
         step = 1 to 3,
+        bottomDivider = true,
         bottom = {
             PrimaryButton("Kirim kode", { signup.email = email.trim(); onSent() }, enabled = valid)
             Spacer(Modifier.height(10.dp))
-            Text("Dengan mendaftar, Anda menyetujui Ketentuan Layanan dan Kebijakan Privasi.", color = Palette.InkSoft, fontSize = 12.5.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+            Text(
+                buildAnnotatedString {
+                    append("Dengan mendaftar, Anda menyetujui ")
+                    withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = Palette.Primary, textDecoration = TextDecoration.Underline)) { append("Ketentuan Layanan") }
+                    append(" dan ")
+                    withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = Palette.Primary, textDecoration = TextDecoration.Underline)) { append("Kebijakan Privasi") }
+                    append(".")
+                },
+                color = Palette.InkSoft,
+                fontSize = 12.5.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
         },
     ) {
         Headline("Masukkan email Anda")
-        Spacer(Modifier.height(24.dp))
-        SecondaryButton("Lanjut dengan Google", onGoogle)
         Spacer(Modifier.height(20.dp))
+        GoogleButton("Lanjut dengan Google", onGoogle)
+        Spacer(Modifier.height(18.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             HorizontalDivider(Modifier.weight(1f), color = Palette.Line)
             Text("atau pakai email", color = Palette.InkSoft, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 12.dp))
             HorizontalDivider(Modifier.weight(1f), color = Palette.Line)
         }
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(18.dp))
         FormField(
             "Alamat email",
             email,
             { email = it; touched = true },
             placeholder = "nama@email.com",
             keyboardType = KeyboardType.Email,
-                        error = if (touched && email.isNotEmpty() && !valid) "Masukkan alamat email yang valid." else null,
+            hint = "Kami kirim kode 6 angka ke email ini.",
+            error = if (touched && email.isNotEmpty() && !valid) "Masukkan alamat email yang valid." else null,
         )
     }
 }
@@ -300,7 +382,8 @@ private fun RegisterEmailPreview() = ReidigTheme { RegisterEmailScreen(previewSi
 fun OtpScreen(
     title: String,
     step: Pair<Int, Int>,
-    sentTo: String,
+    sentVia: String,
+    target: String,
     demoCode: String,
     onBack: () -> Unit,
     onVerified: () -> Unit,
@@ -343,7 +426,15 @@ fun OtpScreen(
             enabled = !verifying,
         )
     }) {
-        Headline("Masukkan kode 6 angka", sentTo)
+        Spacer(Modifier.height(12.dp))
+        Headline(
+            "Masukkan kode 6 angka",
+            centered = true,
+            subtitleRich = buildAnnotatedString {
+                append("$sentVia ")
+                withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = Palette.Ink)) { append(target) }
+            },
+        )
         Spacer(Modifier.height(32.dp))
         CodeDots(code.length, error = error)
         Spacer(Modifier.height(20.dp))
@@ -364,7 +455,7 @@ fun OtpScreen(
 
 @ScreenPreview
 @Composable
-private fun EmailOtpPreview() = ReidigTheme { OtpScreen("Verifikasi email", 2 to 3, "Dikirim ke sari@gmail.com", DEMO_EMAIL_OTP, {}, {}) }
+private fun EmailOtpPreview() = ReidigTheme { OtpScreen("Verifikasi email", 2 to 3, "Dikirim ke", "sari@gmail.com", DEMO_EMAIL_OTP, {}, {}) }
 
 @Composable
 fun RegisterProfileScreen(env: AppEnv, signup: SignupDraft, onBack: () -> Unit, onDone: () -> Unit) {
@@ -382,6 +473,7 @@ fun RegisterProfileScreen(env: AppEnv, signup: SignupDraft, onBack: () -> Unit, 
         "Data diri",
         onBack,
         step = 3 to 3,
+        bottomDivider = true,
         bottom = {
             PrimaryButton(
                 "Buat akun",
@@ -396,14 +488,19 @@ fun RegisterProfileScreen(env: AppEnv, signup: SignupDraft, onBack: () -> Unit, 
         },
     ) {
         Headline("Lengkapi data diri")
-        Spacer(Modifier.height(12.dp))
-        StatusChip("${signup.email} terverifikasi", ChipTone.GOOD)
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(14.dp))
+        VerifiedBanner(
+            buildAnnotatedString {
+                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(signup.email) }
+                append(" terverifikasi")
+            },
+        )
+        Spacer(Modifier.height(18.dp))
         FormField(
             "Nama lengkap",
             name,
             { name = it; nameTouched = true },
-            placeholder = "Nama lengkap",
+            placeholder = "Sesuai KTP",
             hint = "Sesuai KTP.",
             error = if (nameTouched && !nameValid) "Masukkan nama lengkap." else null,
         )
@@ -419,16 +516,14 @@ fun RegisterProfileScreen(env: AppEnv, signup: SignupDraft, onBack: () -> Unit, 
             error = if (dob.length == 10 && !dobValid) "Tanggal tidak valid atau usia di bawah 18 tahun." else null,
         )
         Spacer(Modifier.height(16.dp))
-        FormField("Kata sandi", password, { password = it }, password = true, keyboardType = KeyboardType.Password)
+        PasswordField("Kata sandi", password, { password = it })
         RuleLine("Minimal 8 karakter", Rules.hasMinLength(password))
         RuleLine("Berisi huruf dan angka", Rules.hasLettersAndNumbers(password))
         Spacer(Modifier.height(16.dp))
-        FormField(
+        PasswordField(
             "Ulangi kata sandi",
             confirm,
             { confirm = it },
-            password = true,
-            keyboardType = KeyboardType.Password,
             error = if (confirm.isNotEmpty() && !passwordMatch) "Kata sandi belum sama." else null,
         )
     }

@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -62,11 +63,12 @@ private fun TokenStatusChip(token: GoldToken, now: Long) {
 }
 
 @Composable
-fun PortfolioScreen(env: AppEnv, onToken: (String) -> Unit, onPrint: () -> Unit, onBuy: () -> Unit) {
+fun PortfolioScreen(env: AppEnv, onToken: (String) -> Unit, onPrint: () -> Unit, onBuy: () -> Unit, header: @Composable () -> Unit = {}) {
     val state by env.repo.state.collectAsStateWithLifecycle()
     val now = System.currentTimeMillis()
     Column(Modifier.fillMaxSize().background(Palette.Paper).statusBarsPadding()) {
-        TopTitleBar("Portofolio", null)
+        TopTitleBar("Dompet", null)
+        header()
         LazyColumn(
             contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -237,11 +239,12 @@ private fun TokenDetailPreview() = ReidigTheme {
 }
 
 @Composable
-fun SellPickerScreen(env: AppEnv, onBack: () -> Unit, onToken: (String) -> Unit) {
+fun SellPickerScreen(env: AppEnv, onBack: (() -> Unit)?, onToken: (String) -> Unit, title: String = "Jual Emas", header: @Composable () -> Unit = {}) {
     val state by env.repo.state.collectAsStateWithLifecycle()
     val now = System.currentTimeMillis()
     val tokens = state.openTokens.filter { it.status == TokenStatus.ACTIVE }
-    FormScreen("Jual Emas", onBack) {
+    FormScreen(title, onBack) {
+        header()
         Headline("Pilih token yang dijual", "Dana masuk ke saldo.")
         Spacer(Modifier.height(16.dp))
         if (tokens.isEmpty()) Text("Belum ada token yang bisa dijual.", color = Palette.InkSoft)
@@ -265,7 +268,7 @@ fun SellPickerScreen(env: AppEnv, onBack: () -> Unit, onToken: (String) -> Unit)
 private fun SellPickerPreview() = ReidigTheme { SellPickerScreen(rememberPreviewEnv(), {}, {}) }
 
 @Composable
-fun PrintScreen(env: AppEnv, initialToken: String?, onBack: () -> Unit, onDone: (PrintOrder) -> Unit) {
+fun PrintScreen(env: AppEnv, initialToken: String?, onBack: (() -> Unit)?, onDone: (PrintOrder) -> Unit) {
     val state by env.repo.state.collectAsStateWithLifecycle()
     val tokens = state.openTokens.filter { it.status == TokenStatus.ACTIVE }
     var selected by remember { mutableStateOf(setOfNotNull(initialToken)) }
@@ -360,7 +363,7 @@ private fun SelectableRow(selected: Boolean, onClick: () -> Unit, enabled: Boole
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Checkbox(selected, null, enabled = enabled, colors = CheckboxDefaults.colors(checkedColor = Palette.Primary))
+        Checkbox(selected, null, enabled = enabled, colors = CheckboxDefaults.colors(checkedColor = Palette.Primary, uncheckedColor = Palette.Primary))
         Spacer(Modifier.width(10.dp))
         Column { content() }
     }

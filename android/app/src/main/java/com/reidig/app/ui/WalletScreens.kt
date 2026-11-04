@@ -41,10 +41,11 @@ import com.reidig.shared.gram
 import com.reidig.shared.rupiah
 
 @Composable
-fun WalletScreen(env: AppEnv, onWithdraw: () -> Unit) {
+fun WalletScreen(env: AppEnv, header: @Composable () -> Unit = {}, onWithdraw: () -> Unit) {
     val state by env.repo.state.collectAsStateWithLifecycle()
     Column(Modifier.fillMaxSize().background(Palette.Paper).statusBarsPadding()) {
-        TopTitleBar("Saldo", null)
+        TopTitleBar("Dompet", null)
+        header()
         LazyColumn(
             contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -232,7 +233,7 @@ fun AccountScreen(env: AppEnv, onVerify: () -> Unit, onInstallments: () -> Unit,
     val state by env.repo.state.collectAsStateWithLifecycle()
     val user = state.user
     Column(Modifier.fillMaxSize().background(Palette.Paper).statusBarsPadding()) {
-        TopTitleBar("Akun", null)
+        TopTitleBar("Profil", null)
         LazyColumn(
             contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -265,7 +266,7 @@ fun AccountScreen(env: AppEnv, onVerify: () -> Unit, onInstallments: () -> Unit,
                 items(state.contracts, key = { it.id }) { contract -> ContractCard(env, contract) }
             }
             item {
-                SecondaryButton("Keluar", onLogout)
+                DestructiveButton("Keluar", onLogout)
                 Spacer(Modifier.height(10.dp))
                 Text("REIDIG · Raja Emas Indonesia · versi 0.1.0", color = Palette.InkSoft, fontSize = 12.5.sp)
             }

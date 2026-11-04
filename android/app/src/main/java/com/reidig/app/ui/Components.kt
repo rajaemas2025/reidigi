@@ -28,7 +28,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Backspace
+import androidx.compose.material.icons.automirrored.outlined.Backspace
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.outlined.CheckCircle
@@ -47,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
@@ -58,10 +59,12 @@ import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private val ButtonHeight = 56.dp
+private val ButtonHeight = 48.dp
+private val ButtonShape = RoundedCornerShape(50)
 
 @Composable
 fun PrimaryButton(
@@ -75,11 +78,11 @@ fun PrimaryButton(
         onClick = onClick,
         enabled = enabled && !loading,
         modifier = modifier.fillMaxWidth().height(ButtonHeight),
-        shape = RoundedCornerShape(16.dp),
+        shape = ButtonShape,
         colors = ButtonDefaults.buttonColors(
             containerColor = Palette.Primary,
             disabledContainerColor = if (loading) Palette.Primary else Palette.Disabled,
-            disabledContentColor = if (loading) Color.White else Palette.DisabledText,
+            disabledContentColor = Color.White,
         ),
     ) {
         if (loading) {
@@ -96,9 +99,27 @@ fun SecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modi
         onClick = onClick,
         enabled = enabled,
         modifier = modifier.fillMaxWidth().height(ButtonHeight),
-        shape = RoundedCornerShape(16.dp),
+        shape = ButtonShape,
         border = BorderStroke(1.dp, if (enabled) Palette.Primary else Palette.Line),
         colors = ButtonDefaults.outlinedButtonColors(contentColor = Palette.Primary),
+    ) {
+        Text(text, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+    }
+}
+
+@Composable
+fun DestructiveButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier.fillMaxWidth().height(ButtonHeight),
+        shape = ButtonShape,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Palette.CriticalSoft,
+            contentColor = Palette.Critical,
+            disabledContainerColor = Palette.CriticalSoft.copy(alpha = 0.5f),
+            disabledContentColor = Palette.Critical.copy(alpha = 0.4f),
+        ),
     ) {
         Text(text, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
     }
@@ -110,7 +131,7 @@ fun LightButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier
         onClick = onClick,
         enabled = enabled,
         modifier = modifier.fillMaxWidth().height(ButtonHeight),
-        shape = RoundedCornerShape(16.dp),
+        shape = ButtonShape,
         colors = ButtonDefaults.buttonColors(
             containerColor = Color.White,
             contentColor = Palette.Primary,
@@ -127,7 +148,7 @@ fun GhostOnDarkButton(text: String, onClick: () -> Unit, modifier: Modifier = Mo
     OutlinedButton(
         onClick = onClick,
         modifier = modifier.fillMaxWidth().height(ButtonHeight),
-        shape = RoundedCornerShape(16.dp),
+        shape = ButtonShape,
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.7f)),
         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
     ) {
@@ -137,7 +158,7 @@ fun GhostOnDarkButton(text: String, onClick: () -> Unit, modifier: Modifier = Mo
 }
 
 @Composable
-fun TextLink(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, color: Color = Palette.Primary) {
+fun TextLink(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, color: Color = Palette.Link) {
     Text(
         text,
         color = color,
@@ -160,9 +181,10 @@ fun FormField(
     prefix: String? = null,
     singleLine: Boolean = true,
     transformation: VisualTransformation = VisualTransformation.None,
+    trailing: (@Composable () -> Unit)? = null,
 ) {
     Column(modifier.fillMaxWidth()) {
-        Text(label, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Palette.Ink)
+        Text(label, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = if (error != null) Palette.Critical else Palette.Ink)
         Spacer(Modifier.height(6.dp))
         OutlinedTextField(
             value = value,
@@ -171,22 +193,31 @@ fun FormField(
             singleLine = singleLine,
             isError = error != null,
             placeholder = { Text(placeholder, color = Palette.DisabledText) },
-            prefix = prefix?.let { { Text("$it  ", color = Palette.Ink, fontWeight = FontWeight.Medium) } },
+            leadingIcon = prefix?.let {
+                {
+                    Row(Modifier.padding(start = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(it, color = Palette.Ink, fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.width(10.dp))
+                        Box(Modifier.width(1.dp).height(22.dp).background(Palette.Line))
+                    }
+                }
+            },
+            trailingIcon = trailing,
             visualTransformation = if (password) PasswordVisualTransformation() else transformation,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             keyboardActions = KeyboardActions.Default,
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(10.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = Palette.Primary,
-                unfocusedBorderColor = Palette.Line,
-                errorBorderColor = Palette.Critical,
+                unfocusedBorderColor = Palette.FieldBorder,
+                errorBorderColor = Palette.CriticalBorder,
                 focusedContainerColor = Color.White,
                 unfocusedContainerColor = Color.White,
                 errorContainerColor = Color.White,
             ),
         )
         when {
-            error != null -> ErrorLine(error, Modifier.padding(top = 6.dp))
+            error != null -> Text(error, color = Palette.Critical, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp))
             hint != null -> Text(hint, color = Palette.InkSoft, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp))
         }
     }
@@ -221,17 +252,19 @@ fun FormScreen(
     title: String,
     onBack: (() -> Unit)?,
     step: Pair<Int, Int>? = null,
+    bottomDivider: Boolean = false,
     bottom: (@Composable ColumnScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(Modifier.fillMaxSize().background(Color.White).statusBarsPadding().imePadding()) {
-        TopTitleBar(title, onBack, step?.let { "${it.first}/${it.second}" })
+        TopTitleBar(title, onBack)
         if (step != null) StepBar(step.first, step.second)
         Column(
             Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 16.dp),
             content = content,
         )
         if (bottom != null) {
+            if (bottomDivider) Box(Modifier.fillMaxWidth().height(1.dp).background(Palette.Ring))
             Column(
                 Modifier.fillMaxWidth().background(Color.White).navigationBarsPadding().padding(20.dp),
                 content = bottom,
@@ -255,25 +288,60 @@ fun TopTitleBar(title: String, onBack: (() -> Unit)?, trailing: String? = null) 
     }
 }
 
+/** Penanda langkah dari design system: lingkaran bernomor. */
 @Composable
 private fun StepBar(current: Int, total: Int) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-        repeat(total) { index ->
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 20.dp).clearAndSetSemantics { contentDescription = "Langkah $current dari $total" },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        for (step in 1..total) {
+            val reached = step <= current
             Box(
-                Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(3.dp))
-                    .background(if (index < current) Palette.Primary else Palette.Ring),
-            )
+                Modifier.size(28.dp).clip(CircleShape)
+                    .background(if (reached) Palette.Primary else Color.White)
+                    .border(1.dp, if (reached) Palette.Primary else Palette.FieldBorder, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("$step", color = if (reached) Color.White else Palette.FieldBorder, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            }
+            if (step < total) {
+                Box(Modifier.weight(1f).height(1.5.dp).background(if (step < current) Palette.Primary else Palette.Line))
+            }
+        }
+    }
+}
+
+/** Pilihan dua halaman di dalam satu tab. */
+@Composable
+fun SegmentSwitch(options: List<String>, selected: Int, inset: Dp = 20.dp, onSelect: (Int) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = inset, vertical = 4.dp).clip(RoundedCornerShape(50)).background(Palette.Lavender).padding(4.dp),
+    ) {
+        options.forEachIndexed { index, label ->
+            val active = index == selected
+            Box(
+                Modifier.weight(1f).clip(RoundedCornerShape(50)).background(if (active) Palette.Primary else Color.Transparent)
+                    .clickable { if (!active) onSelect(index) }.padding(vertical = 9.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(label, color = if (active) Color.White else Palette.Primary, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            }
         }
     }
 }
 
 @Composable
-fun Headline(title: String, subtitle: String? = null, centered: Boolean = false) {
+fun Headline(title: String, subtitle: String? = null, centered: Boolean = false, subtitleRich: AnnotatedString? = null) {
     val align = if (centered) TextAlign.Center else TextAlign.Start
     Text(title, fontWeight = FontWeight.ExtraBold, fontSize = 25.sp, lineHeight = 31.sp, color = Palette.Ink, textAlign = align, modifier = Modifier.fillMaxWidth())
     if (subtitle != null) {
         Spacer(Modifier.height(6.dp))
         Text(subtitle, color = Palette.InkSoft, fontSize = 15.sp, lineHeight = 22.sp, textAlign = align, modifier = Modifier.fillMaxWidth())
+    }
+    if (subtitleRich != null) {
+        Spacer(Modifier.height(6.dp))
+        Text(subtitleRich, color = Palette.InkSoft, fontSize = 15.sp, lineHeight = 22.sp, textAlign = align, modifier = Modifier.fillMaxWidth())
     }
 }
 
@@ -316,7 +384,7 @@ fun NumberPad(onDigit: (Char) -> Unit, onDelete: () -> Unit, enabled: Boolean = 
                 Modifier.weight(1f).height(60.dp).clip(RoundedCornerShape(12.dp)).clickable(enabled = enabled, onClick = onDelete),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Filled.Backspace, "Hapus", tint = Palette.Ink)
+                Icon(Icons.AutoMirrored.Outlined.Backspace, "Hapus", tint = Palette.Ink)
             }
         }
     }

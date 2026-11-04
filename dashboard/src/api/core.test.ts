@@ -149,6 +149,54 @@ describe('hak akses dan pemeriksaan keping', () => {
     expectCode(() => db.decideQc(staffA, unit.id, true), 'FORBIDDEN')
   })
 
+  describe('ubah data keping', () => {
+    const edit = (unit: { id: number; skuId: number; locationId: number; serial: string }, patch = {}) =>
+      db.updateUnit(spv, unit.id, { serial: unit.serial, skuId: unit.skuId, locationId: unit.locationId, reason: 'Salah ketik', ...patch })
+    const available = () => db.listUnits({ status: 'AVAILABLE' })[0]
+
+    it('mengubah seri, SKU, dan lokasi lalu mencatat audit', () => {
+      const unit = available()
+      edit(unit, { serial: ' seri-baru-1 ', skuId: 2, locationId: 3 })
+      expect(db.listUnits({ q: 'SERI-BARU-1' })[0]).toMatchObject({ id: unit.id, skuId: 2, locationId: 3, status: 'AVAILABLE' })
+      const entry = db.listAudit()[0]
+      expect(entry.action).toBe('UNIT_EDITED')
+      expect(entry.detail).toContain(unit.serial)
+      expect(entry.detail).toContain('Alasan: Salah ketik')
+      expect(db.checkInvariants().filter((r) => !r.ok)).toEqual([])
+    })
+
+    it('hanya supervisor yang boleh mengubah', () => {
+      const unit = available()
+      expectCode(() => db.updateUnit(staffA, unit.id, { ...unit, serial: 'X', reason: 'r' }), 'FORBIDDEN')
+    })
+
+    it('menolak keping bertoken dan keping yang sedang diproses', () => {
+      const tokened = db.listUnits().find((u) => u.tokenCode)!
+      expectCode(() => edit(tokened, { serial: 'X-1' }), 'UNIT_LOCKED')
+      const shipped = available()
+      db.state.units.find((u) => u.id === shipped.id)!.status = 'SHIPPED'
+      expectCode(() => edit(shipped, { serial: 'X-2' }), 'UNIT_LOCKED')
+    })
+
+    it('menolak seri ganda, alasan kosong, dan tanpa perubahan', () => {
+      const [a, b] = db.listUnits({ status: 'AVAILABLE' })
+      expectCode(() => edit(a, { serial: b.serial }), 'DUPLICATE')
+      expectCode(() => edit(a, { serial: 'X-3', reason: ' ' }), 'INVALID')
+      expectCode(() => edit(a), 'INVALID')
+      expect(db.listUnits({ q: a.serial })).toHaveLength(1)
+    })
+
+    it('menolak perubahan saat lokasi sedang diopname', () => {
+      const unit = available()
+      db.createCount(spv, unit.locationId)
+      expectCode(() => edit(unit, { serial: 'X-4' }), 'COUNT_IN_PROGRESS')
+      const count = db.state.counts[0]
+      count.status = 'APPROVED'
+      db.createCount(spv, 3)
+      expectCode(() => edit(unit, { locationId: 3 }), 'COUNT_IN_PROGRESS')
+    })
+  })
+
   it('penerimaan menolak nomor seri ganda', () => {
     const serial = db.state.units[0].serial
     expectCode(() => db.receiveUnits(staffA, { skuId: 1, locationId: 1, serials: [serial] }), 'DUPLICATE')
