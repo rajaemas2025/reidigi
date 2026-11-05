@@ -1,0 +1,6 @@
+services:
+  reidig:
+    image: reidig
+    build:
+      context: .
+      dockerfile: ./Dockerfile

@@ -95,6 +95,7 @@ import androidx.compose.ui.unit.sp
 import com.reidig.shared.MockRepository
 import com.reidig.shared.Rules
 import kotlinx.coroutines.delay
+import java.time.LocalDate
 
 private const val STEPS = 5
 
@@ -529,9 +530,13 @@ fun KycReviewScreen(signup: SignupDraft, kyc: KycDraft, onBack: () -> Unit, onRe
     var dobDigits by rememberSaveable { mutableStateOf(signup.dob.ifBlank { "14/03/1992" }.filter { it.isDigit() }) }
     val dob = formatDateDigits(dobDigits)
     var address by rememberSaveable { mutableStateOf("Jl. Merdeka No. 1, Jakarta Barat") }
-    val mismatch = (signup.name.isNotBlank() && !name.trim().equals(signup.name.trim(), ignoreCase = true)) ||
+    val today = LocalDate.now()
+    val dobValid = Rules.isAdult(dob, today.year, today.monthValue, today.dayOfMonth)
+    // Spasi ganda diabaikan, sama dengan normalize_name di backend.
+    fun normalized(value: String) = value.trim().split(Regex("\\s+")).joinToString(" ").uppercase()
+    val mismatch = (signup.name.isNotBlank() && normalized(name) != normalized(signup.name)) ||
         (signup.dob.isNotBlank() && dob != signup.dob)
-    val valid = Rules.isValidFullName(name) && Rules.isValidNik(nik) && dob.length == 10 && address.isNotBlank() && !mismatch
+    val valid = Rules.isValidFullName(name) && Rules.isValidNik(nik) && dobValid && address.isNotBlank() && !mismatch
     FormScreen(
         "Periksa data",
         onBack,
@@ -556,7 +561,7 @@ fun KycReviewScreen(signup: SignupDraft, kyc: KycDraft, onBack: () -> Unit, onRe
         Spacer(Modifier.height(14.dp))
         FormField("NIK", nik, { nik = it.filter { c -> c.isDigit() }.take(16) }, keyboardType = KeyboardType.Number, error = if (nik.isNotEmpty() && !Rules.isValidNik(nik)) "NIK harus 16 angka." else null)
         Spacer(Modifier.height(14.dp))
-        FormField("Tanggal lahir", dobDigits, { dobDigits = it.filter { c -> c.isDigit() }.take(8) }, keyboardType = KeyboardType.Number, transformation = DateTransformation)
+        FormField("Tanggal lahir", dobDigits, { dobDigits = it.filter { c -> c.isDigit() }.take(8) }, keyboardType = KeyboardType.Number, transformation = DateTransformation, error = if (dob.length == 10 && !dobValid) "Tanggal tidak valid atau usia di bawah 18 tahun." else null)
         Spacer(Modifier.height(14.dp))
         FormField("Alamat", address, { address = it }, singleLine = false)
     }
