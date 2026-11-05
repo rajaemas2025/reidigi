@@ -71,13 +71,14 @@ ADMINS = [
 ]
 
 AGREEMENT_VERSION = "CICIL-1"
-AGREEMENT_BODY = """PERJANJIAN CICIL EMAS (DRAF, BELUM DITINJAU LEGAL)
+AGREEMENT_BODY = """AKAD PEMBIAYAAN MURABAHAH EMAS
 
-1. Pembiayaan diberikan oleh mitra pembiayaan, bukan oleh REIDIG.
-2. Emas tetap terkunci sebagai token cicilan sampai seluruh angsuran lunas, dan tidak bisa dijual atau dicetak sebelum itu.
-3. Angsuran per bulan yang ditampilkan belum termasuk bunga dan biaya mitra.
-4. Bila terjadi gagal bayar, token cicilan dapat dibatalkan sesuai ketentuan mitra.
-5. Pengguna menyetujui pembagian data identitas dan transaksi kepada mitra untuk keperluan pembiayaan.
+1. Pembiayaan cicilan ini difasilitasi oleh lembaga keuangan syariah mitra berizin (BPRS / Koperasi Simpan Pinjam Syariah) melalui agregator pembiayaan resmi.
+2. Lembaga pembiayaan mitra melunasi 100% harga emas fisik secara langsung kepada PT Raja Emas Indonesia di awal untuk kepentingan nasabah berdasarkan pesanan akad Murabahah.
+3. Keping emas fisik yang telah dibayar lunas disimpan aman di brankas terpusat PT Raja Emas Indonesia sebagai barang jaminan pembiayaan selama masa angsuran berlangsung.
+4. Nasabah berkewajiban mencicil angsuran secara berkala langsung kepada pihak agregator/penyedia pembiayaan sesuai jadwal yang disepakati.
+5. Setelah seluruh kewajiban angsuran dinyatakan lunas 100% oleh mitra pembiayaan, hak kepemilikan token emas digital resmi diterbitkan dan dipindahkan ke portofolio aktif nasabah di aplikasi REIDIG (dapat disimpan, dijual kembali, atau dicetak fisik).
+6. Nasabah menyetujui pembagian data identitas dan dokumen KYC kepada agregator dan mitra pembiayaan khusus untuk keperluan verifikasi kelayakan serta pencatatan akad.
 """
 
 

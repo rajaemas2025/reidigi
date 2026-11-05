@@ -153,7 +153,7 @@ export function createSeed(): DbState {
     ],
     contracts: installmentTokens.map((t, i) => ({
       id: `MTR-${1001 + i}`,
-      partner: 'Mitra Pembiayaan',
+      partner: i === 0 ? 'Agregator (BPRS Mitra Syariah)' : 'Agregator (Koperasi Syariah BMT)',
       owner: t.owner,
       tokenCode: t.code,
       price: 12_442_500,

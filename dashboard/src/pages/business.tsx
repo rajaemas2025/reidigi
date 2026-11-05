@@ -208,23 +208,26 @@ export function FinancingPage() {
     <>
       <PageHeader
         title="Cicilan Emas Mitra"
-        subtitle="Pemantauan kontrak cicilan emas digital nasabah yang difasilitasi oleh mitra pembiayaan resmi."
+        subtitle="Pemantauan kontrak cicilan emas yang didanai lunas di awal oleh agregator/mitra syariah (BPRS/Koperasi) hingga lunas."
       />
       <Card flush>
-        <Table head={['ID Kontrak', 'Nama Nasabah', 'Token Emas Terkait', 'Total Nilai Kontrak', 'Progres Angsuran', 'Status Pembayaran']}>
+        <Table head={['ID Kontrak', 'Nama Nasabah', 'Mitra Pembiayaan Akad', 'Keping Terkunci', 'Total Pembiayaan', 'Progres Angsuran', 'Status Kontrak']}>
           {contracts?.map((c) => (
             <tr key={c.id}>
               <td className="mono">{c.id}</td>
               <td>{c.owner}</td>
+              <td>
+                <span className="small">{c.partner}</span>
+              </td>
               <td className="mono small">{c.tokenCode}</td>
               <td>{rupiah(c.price)}</td>
               <td>
                 {c.paidMonths} dari {c.tenorMonths} bulan
               </td>
               <td>
-                {c.status === 'ON_TIME' && <Badge tone="good">Pembayaran lancar</Badge>}
+                {c.status === 'ON_TIME' && <Badge tone="good">Angsuran lancar</Badge>}
                 {c.status === 'OVERDUE' && <Badge tone="critical">Menunggak</Badge>}
-                {c.status === 'PAID_OFF' && <Badge tone="neutral">Lunas</Badge>}
+                {c.status === 'PAID_OFF' && <Badge tone="neutral">Lunas (Hak milik aktif)</Badge>}
               </td>
             </tr>
           ))}

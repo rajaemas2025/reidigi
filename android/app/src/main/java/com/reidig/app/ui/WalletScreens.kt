@@ -182,7 +182,7 @@ fun InstallmentScreen(env: AppEnv, onBack: () -> Unit, onNext: (InstallmentDraft
             PrimaryButton("Lanjut ke perjanjian", { onNext(InstallmentDraft(skuCode, sku.buyPrice, downPayment, tenor)) }, enabled = sku.stock > 0)
         },
     ) {
-        Headline("Cicil emas", "Token baru bisa dijual atau dicetak setelah lunas.")
+        Headline("Cicil Emas", "Keping fisik dikunci untuk Anda dan otomatis masuk portofolio saat lunas.")
         Spacer(Modifier.height(16.dp))
         Text("Pilih SKU", fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(8.dp))
@@ -202,7 +202,7 @@ fun InstallmentScreen(env: AppEnv, onBack: () -> Unit, onNext: (InstallmentDraft
             SummaryRow("Angsuran per bulan", rupiah(monthly), strong = true)
         }
         Spacer(Modifier.height(8.dp))
-        Text("Angsuran belum termasuk biaya dari mitra.", color = Palette.InkSoft, fontSize = 13.sp)
+        Text("Rincian akad dan ketentuan pembiayaan akan ditampilkan pada lembar perjanjian.", color = Palette.InkSoft, fontSize = 13.sp)
     }
 }
 

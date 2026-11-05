@@ -29,16 +29,14 @@ import kotlinx.coroutines.delay
 /** Pilihan pengguna di layar simulasi, dibawa ke perjanjian. */
 data class InstallmentDraft(val skuCode: String, val price: Long, val downPayment: Long, val tenorMonths: Int)
 
-/** Isi perjanjian masih draf dan perlu ditinjau tim legal serta disesuaikan dengan kontrak mitra. */
+/** Klausul akad pembiayaan syariah melalui agregator dan lembaga pembiayaan mitra (BPRS / Koperasi Syariah). */
 private val AGREEMENT_CLAUSES = listOf(
-    "1. Para pihak" to "Perjanjian ini berlaku antara Anda sebagai pembeli, Raja Emas Indonesia sebagai penjual, dan mitra pembiayaan sebagai penyedia pembiayaan.",
-    "2. Harga" to "Harga emas dikunci saat pengajuan dan tidak berubah selama masa cicilan.",
-    "3. Uang muka" to "Uang muka dibayar dalam 15 menit setelah pengajuan. Kalau tidak dibayar, pengajuan batal dan keping dilepas kembali.",
-    "4. Penguncian keping" to "Setelah uang muka lunas, satu keping bernomor seri dikunci untuk Anda. Tokennya tidak bisa dijual atau dicetak sampai cicilan lunas.",
-    "5. Angsuran" to "Angsuran dibayar ke mitra sesuai jadwal. Nilai yang tertera belum termasuk biaya dari mitra, yang dirinci di kontrak mitra.",
-    "6. Keterlambatan dan gagal bayar" to "Denda dan penanganan gagal bayar mengikuti kontrak mitra. Jika terjadi gagal bayar, token bisa dibatalkan dan keping dilepas. Pengembalian dana mengikuti kontrak.",
-    "7. Pelunasan" to "Token menjadi aktif setelah mitra mengonfirmasi cicilan lunas. Setelah itu token bisa dijual atau dicetak.",
-    "8. Data pribadi" to "Data identitas dan transaksi Anda dibagikan ke mitra untuk menilai dan mengelola pembiayaan.",
+    "1. Para Pihak & Akad Pembiayaan" to "Pembiayaan cicilan ini difasilitasi oleh lembaga keuangan syariah mitra berizin (BPRS / Koperasi Syariah) melalui agregator pembiayaan resmi berdasarkan akad Murabahah.",
+    "2. Pelunasan Emas di Awal" to "Pihak penyedia pembiayaan melunasi 100% harga emas fisik secara langsung ke Raja Emas Indonesia di awal saat pengajuan disetujui untuk kepentingan nasabah.",
+    "3. Jaminan Fisik di Brankas" to "Keping emas fisik yang telah dibayar lunas oleh mitra pembiayaan disimpan aman di brankas terpusat Raja Emas Indonesia sebagai jaminan pembiayaan selama masa angsuran berlangsung.",
+    "4. Angsuran ke Pihak Pembiayaan" to "Anda mencicil pembayaran pokok dan margin angsuran secara berkala langsung kepada pihak agregator/penyedia pembiayaan sesuai jadwal jatuh tempo.",
+    "5. Penyerahan Hak Milik Emas Saat Lunas" to "Setelah seluruh angsuran dinyatakan lunas 100% oleh pihak pembiayaan, hak kepemilikan token emas digital resmi diterbitkan dan dipindahkan ke portofolio aktif Anda di aplikasi REIDIG (dapat disimpan, dijual kembali, atau dicetak fisik).",
+    "6. Perlindungan & Pembagian Data" to "Data identitas dan dokumen verifikasi Anda dibagikan secara aman kepada mitra pembiayaan khusus untuk keperluan verifikasi kelayakan dan pencatatan akad.",
 )
 
 @Composable
@@ -61,7 +59,7 @@ fun InstallmentAgreementScreen(
             PrimaryButton("Setuju & ajukan cicilan", { askPin = true }, enabled = agreed && dataShared)
         },
     ) {
-        Headline("Baca sebelum mengajukan", "Versi ${Rules.INSTALLMENT_AGREEMENT_VERSION}")
+        Headline("Akad Pembiayaan Cicil Emas", "Akad Murabahah · Versi ${Rules.INSTALLMENT_AGREEMENT_VERSION}")
         Spacer(Modifier.height(16.dp))
         SurfaceCard(tint = Palette.Lavender) {
             SummaryRow("Barang", "${sku.product} ${gram(sku.weightMg)}")
@@ -78,8 +76,8 @@ fun InstallmentAgreementScreen(
             Text(body, color = Palette.InkSoft, fontSize = 14.sp, lineHeight = 20.sp)
             Spacer(Modifier.height(14.dp))
         }
-        ConsentRow("Saya sudah membaca dan menyetujui perjanjian ini.", agreed) { agreed = it }
-        ConsentRow("Saya setuju data saya dibagikan ke mitra pembiayaan.", dataShared) { dataShared = it }
+        ConsentRow("Saya telah membaca dan menyetujui seluruh ketentuan akad pembiayaan ini.", agreed) { agreed = it }
+        ConsentRow("Saya menyetujui data saya dibagikan ke agregator & mitra pembiayaan.", dataShared) { dataShared = it }
     }
 
     if (askPin) {
