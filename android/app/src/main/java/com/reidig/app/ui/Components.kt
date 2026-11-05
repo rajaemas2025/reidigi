@@ -45,7 +45,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -400,10 +404,44 @@ private fun PadKey(label: String, enabled: Boolean, modifier: Modifier, onClick:
     }
 }
 
+private val CardEdge = 3.dp
+
+/**
+ * Membuat kartu terlihat timbul: bayangan, sisi bawah yang lebih gelap, dan kilau di tepi atas.
+ * Isi dan efek sentuh dipasang setelah modifier ini agar tidak menutupi sisi bawah.
+ */
+fun Modifier.cardDepth(
+    face: Color = Color.White,
+    shape: Shape = RoundedCornerShape(16.dp),
+    outline: Color? = null,
+): Modifier = this
+    .shadow(8.dp, shape, ambientColor = Palette.Primary.copy(alpha = 0.3f), spotColor = Palette.Primary.copy(alpha = 0.5f))
+    .background(lerp(face, Palette.Primary, 0.22f), shape)
+    .padding(bottom = CardEdge)
+    .clip(shape)
+    .background(Brush.verticalGradient(listOf(lerp(face, Color.White, 0.7f), lerp(face, Palette.Primary, 0.025f))))
+    .border(
+        1.dp,
+        if (outline != null) Brush.linearGradient(listOf(outline, outline))
+        else Brush.verticalGradient(listOf(Color.White, lerp(face, Palette.Primary, 0.08f))),
+        shape,
+    )
+
+/** [cardDepth] untuk kartu berwarna gelap dengan teks putih. */
+fun Modifier.darkCardDepth(
+    face: Color = Palette.NightSoft,
+    shape: Shape = RoundedCornerShape(16.dp),
+): Modifier = this
+    .shadow(10.dp, shape, ambientColor = Color.Black, spotColor = Color.Black)
+    .background(lerp(face, Color.Black, 0.55f), shape)
+    .padding(bottom = CardEdge)
+    .clip(shape)
+    .background(Brush.verticalGradient(listOf(lerp(face, Color.White, 0.14f), face)))
+    .border(1.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.28f), Color.Transparent)), shape)
+
 @Composable
 fun SurfaceCard(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, tint: Color = Color.White, content: @Composable ColumnScope.() -> Unit) {
-    val base = modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(tint)
-        .border(1.dp, if (tint == Color.White) Palette.Ring else Color.Transparent, RoundedCornerShape(16.dp))
+    val base = modifier.fillMaxWidth().cardDepth(tint)
     Column(
         (if (onClick != null) base.clickable(onClick = onClick) else base).padding(16.dp),
         content = content,

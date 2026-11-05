@@ -32,7 +32,6 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -118,7 +117,7 @@ fun KycConsentScreen(onBack: () -> Unit, onNext: () -> Unit) {
         },
     ) {
         Row(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Palette.Primary).padding(16.dp),
+            Modifier.fillMaxWidth().darkCardDepth(Palette.Primary).padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(Color.White.copy(alpha = 0.14f)), contentAlignment = Alignment.Center) {
@@ -133,7 +132,7 @@ fun KycConsentScreen(onBack: () -> Unit, onNext: () -> Unit) {
         Spacer(Modifier.height(18.dp))
         Headline("Verifikasi identitas", "Wajib sebelum pembelian pertama.")
         Spacer(Modifier.height(16.dp))
-        Column(Modifier.fillMaxWidth().border(1.dp, Palette.Ring, RoundedCornerShape(16.dp)).padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 2.dp)) {
+        Column(Modifier.fillMaxWidth().cardDepth().padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 2.dp)) {
             PolicyItem("1. Akun Anda", "Usia minimal 18 tahun dengan KTP yang berlaku. Satu orang satu akun.")
             PolicyItem("2. Perdagangan emas", "Keping emas disimpan di gudang dan dicatat per nomor seri. Harga dikunci sebentar saat Anda bertransaksi.")
             PolicyItem("3. Verifikasi identitas", "Kami memeriksa KTP dan wajah Anda sesuai aturan anti pencucian uang.")
@@ -162,9 +161,8 @@ private fun PolicyItem(title: String, body: String) {
 internal fun ConsentRow(text: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     val shape = RoundedCornerShape(12.dp)
     Row(
-        Modifier.fillMaxWidth().padding(bottom = 10.dp).clip(shape)
-            .background(if (checked) Palette.Lavender else Color.White)
-            .border(1.dp, if (checked) Palette.Primary else Palette.Line, shape)
+        Modifier.fillMaxWidth().padding(bottom = 10.dp)
+            .cardDepth(if (checked) Palette.Lavender else Color.White, shape, if (checked) Palette.Primary else null)
             .clickable(role = Role.Checkbox) { onChange(!checked) }
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -239,9 +237,7 @@ private fun ChannelCard(title: String, subtitle: String, icon: ImageVector, tint
     Row(
         Modifier.fillMaxWidth()
             .then(if (selected) Modifier.border(3.dp, Palette.Ring, RoundedCornerShape(18.dp)).padding(3.dp) else Modifier.padding(3.dp))
-            .clip(shape)
-            .background(if (selected) Palette.Lavender else Color.White)
-            .border(if (selected) BorderStroke(1.5.dp, Palette.Primary) else BorderStroke(1.5.dp, Palette.Line), shape)
+            .cardDepth(if (selected) Palette.Lavender else Color.White, shape, if (selected) Palette.Primary else null)
             .clickable(role = Role.RadioButton, onClick = onClick).padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -584,7 +580,7 @@ fun KycLivenessIntroScreen(onBack: () -> Unit, onStart: () -> Unit) {
         Spacer(Modifier.height(18.dp))
         listOf("Cari tempat yang cukup terang", "Lepas kacamata, topi, atau masker", "Jaga wajah tetap di dalam oval").forEachIndexed { i, tip ->
             Row(
-                Modifier.fillMaxWidth().padding(bottom = 10.dp).clip(RoundedCornerShape(14.dp)).background(Palette.Lavender).padding(12.dp),
+                Modifier.fillMaxWidth().padding(bottom = 10.dp).cardDepth(Palette.Lavender, RoundedCornerShape(14.dp)).padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(Modifier.size(30.dp).clip(CircleShape).background(Palette.Primary), contentAlignment = Alignment.Center) {
@@ -748,7 +744,7 @@ fun KycVerifiedScreen(onDone: () -> Unit) {
             Spacer(Modifier.height(24.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 listOf("Identitas\nterverifikasi", "Wajah\ncocok", "PIN\naman").forEach { label ->
-                    Column(Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).background(Color.White.copy(alpha = 0.1f)).padding(12.dp)) {
+                    Column(Modifier.weight(1f).darkCardDepth(shape = RoundedCornerShape(14.dp)).padding(12.dp)) {
                         Icon(Icons.Filled.Check, null, tint = Palette.Mint, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.height(6.dp))
                         Text(label, color = Color.White, fontSize = 14.sp, lineHeight = 19.sp)

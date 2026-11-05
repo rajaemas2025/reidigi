@@ -112,7 +112,7 @@ fun WelcomeScreen(env: AppEnv, onLogin: () -> Unit, onRegister: () -> Unit) {
         }
         Spacer(Modifier.weight(1f))
         Column(
-            Modifier.fillMaxWidth(0.82f).clip(RoundedCornerShape(16.dp)).background(Color.White.copy(alpha = 0.12f)).padding(16.dp),
+            Modifier.fillMaxWidth(0.82f).darkCardDepth().padding(16.dp),
         ) {
             Text("Harga emas / gram", color = Color.White.copy(alpha = 0.75f), fontSize = 13.sp)
             Spacer(Modifier.height(2.dp))

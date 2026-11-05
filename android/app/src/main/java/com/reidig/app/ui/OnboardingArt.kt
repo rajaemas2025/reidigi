@@ -127,7 +127,7 @@ fun GoogleButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifie
 @Composable
 fun VerifiedBanner(text: AnnotatedString) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Color(0xFFE6F8F0)).padding(12.dp),
+        Modifier.fillMaxWidth().cardDepth(Color(0xFFE6F8F0), RoundedCornerShape(14.dp)).padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.size(28.dp).clip(CircleShape).background(Palette.Good), contentAlignment = Alignment.Center) {

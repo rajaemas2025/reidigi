@@ -1,7 +1,6 @@
 package com.reidig.app.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -356,9 +355,8 @@ private fun PrintPreview() = ReidigTheme { PrintScreen(rememberPreviewEnv(), nul
 private fun SelectableRow(selected: Boolean, onClick: () -> Unit, enabled: Boolean = true, content: @Composable () -> Unit) {
     val shape = RoundedCornerShape(12.dp)
     Row(
-        Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(shape)
-            .background(if (selected) Palette.Lavender else Color.White)
-            .border(1.dp, if (selected) Palette.Primary else Palette.Line, shape)
+        Modifier.fillMaxWidth().padding(bottom = 8.dp)
+            .cardDepth(if (selected) Palette.Lavender else Color.White, shape, if (selected) Palette.Primary else null)
             .clickable(enabled = enabled, role = Role.Checkbox, onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,

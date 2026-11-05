@@ -51,7 +51,7 @@ fun WalletScreen(env: AppEnv, header: @Composable () -> Unit = {}, onWithdraw: (
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             item {
-                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(NightGradient).padding(20.dp)) {
+                Column(Modifier.fillMaxWidth().darkCardDepth(shape = RoundedCornerShape(20.dp)).padding(20.dp)) {
                     Text("Saldo REIDIG", color = Color.White.copy(alpha = 0.75f), fontSize = 13.sp)
                     Text(rupiah(state.walletBalance), color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 30.sp)
                     Spacer(Modifier.height(16.dp))

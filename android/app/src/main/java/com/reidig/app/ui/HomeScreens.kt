@@ -105,7 +105,7 @@ fun HomeScreen(
             Text(rupiah(state.portfolioValue), color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 30.sp)
             Text("${gram(state.totalWeightMg)} · ${state.ownedTokens.size} token", color = Color.White.copy(alpha = 0.75f), fontSize = 13.sp)
             Spacer(Modifier.height(16.dp))
-            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Color.White.copy(alpha = 0.12f)).padding(14.dp)) {
+            Column(Modifier.fillMaxWidth().darkCardDepth().padding(14.dp)) {
                 HomePriceRow("1 gr", state.sku("LMRE-1G"))
                 Spacer(Modifier.height(8.dp))
                 Text("Diperbarui ${state.priceUpdatedAtLabel}", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
@@ -119,16 +119,18 @@ fun HomeScreen(
                 }
                 Spacer(Modifier.height(16.dp))
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                QuickAction("Beli", Icons.Outlined.ShoppingBag, onBuy)
-                QuickAction("Jual", Icons.Outlined.Sell, onSell)
-                QuickAction("Harga", Icons.Outlined.TableChart, onPrices)
-            }
-            Spacer(Modifier.height(8.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                QuickAction("Cetak", Icons.Outlined.Inventory2, onPrint)
-                QuickAction("Cicil", Icons.Outlined.CalendarMonth, onInstallment)
-                QuickAction("Tarik", Icons.Outlined.AccountBalanceWallet, onWithdraw)
+            SurfaceCard {
+                Row(Modifier.fillMaxWidth()) {
+                    QuickAction("Beli", Icons.Outlined.ShoppingBag, Modifier.weight(1f), onBuy)
+                    QuickAction("Jual", Icons.Outlined.Sell, Modifier.weight(1f), onSell)
+                    QuickAction("Harga", Icons.Outlined.TableChart, Modifier.weight(1f), onPrices)
+                }
+                Spacer(Modifier.height(8.dp))
+                Row(Modifier.fillMaxWidth()) {
+                    QuickAction("Cetak", Icons.Outlined.Inventory2, Modifier.weight(1f), onPrint)
+                    QuickAction("Cicil", Icons.Outlined.CalendarMonth, Modifier.weight(1f), onInstallment)
+                    QuickAction("Tarik", Icons.Outlined.AccountBalanceWallet, Modifier.weight(1f), onWithdraw)
+                }
             }
             Spacer(Modifier.height(20.dp))
             SurfaceCard(onClick = onWithdraw) {
@@ -140,7 +142,7 @@ fun HomeScreen(
                 painterResource(R.drawable.banner_jual_emas),
                 contentDescription = "Jual emas paling transparan dengan harga tinggi di Raja Emas Indonesia",
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxWidth().aspectRatio(2f).clip(RoundedCornerShape(16.dp)),
+                modifier = Modifier.fillMaxWidth().cardDepth().aspectRatio(2f),
             )
         }
     }
@@ -213,9 +215,9 @@ private fun PriceTableRow(weight: String, buy: String, sell: String, header: Boo
 }
 
 @Composable
-private fun QuickAction(label: String, icon: ImageVector, onClick: () -> Unit) {
+private fun QuickAction(label: String, icon: ImageVector, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Column(
-        Modifier.width(96.dp).clip(RoundedCornerShape(14.dp)).clickable(role = Role.Button, onClick = onClick).padding(vertical = 8.dp),
+        modifier.clip(RoundedCornerShape(14.dp)).clickable(role = Role.Button, onClick = onClick).padding(vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(Modifier.size(48.dp).clip(CircleShape).background(Palette.Ring), contentAlignment = Alignment.Center) {
@@ -460,8 +462,7 @@ internal fun PaymentWaitDialog(
 internal fun PaymentOption(title: String, detail: String, selected: Boolean, onClick: () -> Unit) {
     val shape = RoundedCornerShape(12.dp)
     Row(
-        Modifier.fillMaxWidth().clip(shape).background(if (selected) Palette.Lavender else Color.White)
-            .border(1.dp, if (selected) Palette.Primary else Palette.Line, shape)
+        Modifier.fillMaxWidth().cardDepth(if (selected) Palette.Lavender else Color.White, shape, if (selected) Palette.Primary else null)
             .clickable(role = Role.RadioButton, onClick = onClick).padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
