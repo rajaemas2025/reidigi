@@ -138,7 +138,7 @@ def seed_demo(db: Session) -> None:
             inventory.decide_qc(db, spv, unit.id, True)
 
     # Pengguna contoh yang sudah terverifikasi, dengan token dan saldo, seperti akun demo Android.
-    user = identity.register(db, "Pengguna Demo", DEMO_EMAIL, DEMO_PASSWORD, "81234567890")
+    user = identity.create_user(db, "Pengguna Demo", DEMO_EMAIL, DEMO_PASSWORD, "81234567890")
     db.add(Wallet(user_id=user.id, available=0, held=0))
     db.flush()
     identity.submit_kyc(db, user, "Pengguna Demo", "3171000000000001", date(1990, 1, 1))

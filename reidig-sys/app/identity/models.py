@@ -14,6 +14,7 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(120))
     email: Mapped[str] = mapped_column(String(254), unique=True)
     phone: Mapped[str | None] = mapped_column(String(20))
+    date_of_birth: Mapped[date | None] = mapped_column(Date)
     password_hash: Mapped[str] = mapped_column(String(200))
     pin_hash: Mapped[str | None] = mapped_column(String(200))
     pin_failed_attempts: Mapped[int] = mapped_column(Integer, default=0)
@@ -33,6 +34,27 @@ class UserSession(Base):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=clock.now)
     expires_at: Mapped[datetime] = mapped_column(UTCDateTime)
     revoked_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
+
+
+class EmailCode(Base):
+    """Kode 6 angka yang dikirim ke email, untuk daftar akun dan atur ulang kata sandi.
+
+    Setelah kode benar, pengguna mendapat tiket sekali pakai untuk langkah berikutnya.
+    Kode dan tiket hanya disimpan dalam bentuk hash.
+    """
+
+    __tablename__ = "email_codes"
+
+    id: Mapped[int] = mapped_column(BigId, primary_key=True)
+    email: Mapped[str] = mapped_column(String(254), index=True)
+    purpose: Mapped[str] = mapped_column(String(16))  # REGISTER, RESET_PASSWORD
+    code_hash: Mapped[str] = mapped_column(String(200))
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=clock.now)
+    expires_at: Mapped[datetime] = mapped_column(UTCDateTime)
+    verified_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
+    ticket_hash: Mapped[str | None] = mapped_column(String(64), unique=True)
+    consumed_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
 
 
 class Device(Base):

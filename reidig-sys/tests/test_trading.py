@@ -6,7 +6,7 @@ from sqlalchemy import select
 
 from app.payments import gateway
 from app.reconciliation.service import check_invariants
-from tests.conftest import PIN
+from tests.conftest import PIN, register
 
 
 def clean(db):
@@ -77,7 +77,7 @@ def test_belum_kyc_tidak_bisa_beli(client):
     from tests.conftest import Api
 
     api = Api(client)
-    r = client.post("/v1/auth/register", json={"name": "Tanpa KYC", "email": "x@reidig.id", "password": "rahasia123"})
+    r = register(client, "Tanpa KYC", "x@reidig.id")
     api.headers = {"Authorization": f"Bearer {r.json()['access_token']}"}
     assert api.buy().json()["error"]["code"] == "KYC_REQUIRED"
 
@@ -253,7 +253,7 @@ def test_riwayat_transaksi(user):
 
 
 def test_kyc_menolak_angka_non_ascii(client):
-    r = client.post("/v1/auth/register", json={"name": "Unicode", "email": "u@reidig.id", "password": "rahasia123"})
+    r = register(client, "Unicode", "u@reidig.id")
     h = {"Authorization": f"Bearer {r.json()['access_token']}"}
     body = {"full_name": "Budi Santoso", "nik": "٣١٧١٠٠٠٠٠٠٠٠٠٩٩٩", "date_of_birth": "1995-05-05"}
     assert client.post("/v1/kyc", json=body, headers=h).json()["error"]["code"] == "INVALID"
@@ -261,7 +261,7 @@ def test_kyc_menolak_angka_non_ascii(client):
 
 
 def test_kyc_nama_terlalu_panjang(client):
-    r = client.post("/v1/auth/register", json={"name": "Panjang", "email": "l@reidig.id", "password": "rahasia123"})
+    r = register(client, "Panjang", "l@reidig.id")
     h = {"Authorization": f"Bearer {r.json()['access_token']}"}
     body = {"full_name": "A" * 121, "nik": "3171000000000111", "date_of_birth": "1995-05-05"}
     assert client.post("/v1/kyc", json=body, headers=h).json()["error"]["code"] == "INVALID"
@@ -275,7 +275,7 @@ def test_compliance_tidak_bisa_setujui_nik_ganda(client, admin):
     try:
         ids = []
         for email in ("g1@reidig.id", "g2@reidig.id"):
-            r = client.post("/v1/auth/register", json={"name": "Ganda", "email": email, "password": "rahasia123"})
+            r = register(client, "Ganda", email)
             h = {"Authorization": f"Bearer {r.json()['access_token']}"}
             body = {"full_name": "Ganda", "nik": "3171000000000777", "date_of_birth": "1995-05-05"}
             ids.append(client.post("/v1/kyc", json=body, headers=h).json()["id"])

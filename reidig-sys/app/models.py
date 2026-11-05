@@ -11,7 +11,7 @@ from app.financing.models import (  # noqa: F401
     FinancingEvent,
 )
 from app.fulfillment.models import PrintOrder, PrintOrderItem, Shipment  # noqa: F401
-from app.identity.models import BankAccount, Device, KycRecord, User, UserSession  # noqa: F401
+from app.identity.models import BankAccount, Device, EmailCode, KycRecord, User, UserSession  # noqa: F401
 from app.inventory.models import (  # noqa: F401
     InboundBatch,
     Location,

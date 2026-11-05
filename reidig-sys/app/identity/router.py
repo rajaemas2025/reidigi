@@ -1,10 +1,13 @@
 from datetime import date
 
+from typing import Literal
+
 from fastapi import APIRouter, Depends, Request
 from pydantic import Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.core.db import get_db
 from app.core.deps import bearer, client_info, current_user
 from app.core.types import Schema
@@ -15,11 +18,39 @@ from app.wallet.models import Wallet
 router = APIRouter(prefix="/v1", tags=["Akun"])
 
 
+class EmailCodeIn(Schema):
+    email: str
+    purpose: Literal["REGISTER", "RESET_PASSWORD"]
+
+
+class EmailCodeOut(Schema):
+    expires_in_seconds: int
+    resend_in_seconds: int
+    dev_code: str | None = Field(default=None, description="Hanya di dev, selama penyedia email belum terhubung")
+
+
+class EmailVerifyIn(Schema):
+    email: str
+    purpose: Literal["REGISTER", "RESET_PASSWORD"]
+    code: str
+
+
+class EmailTicketOut(Schema):
+    email_ticket: str = Field(description="Sekali pakai, untuk daftar akun atau atur ulang kata sandi")
+
+
 class RegisterIn(Schema):
+    email_ticket: str = Field(description="Dari POST /v1/auth/email-code/verify dengan purpose REGISTER")
     name: str
     email: str
     password: str
+    date_of_birth: date | None = None
     phone: str | None = Field(default=None, description="Nomor setelah +62, tanpa 0 di depan")
+
+
+class PasswordResetIn(Schema):
+    email_ticket: str = Field(description="Dari POST /v1/auth/email-code/verify dengan purpose RESET_PASSWORD")
+    new_password: str
 
 
 class LoginIn(Schema):
@@ -37,6 +68,7 @@ class MeOut(Schema):
     name: str
     email: str
     phone: str | None
+    date_of_birth: date | None
     kyc_status: str
     verified: bool
     has_pin: bool
@@ -77,7 +109,7 @@ class BankAccountOut(Schema):
 
 def me_out(user: User) -> MeOut:
     return MeOut(
-        id=user.id, name=user.name, email=user.email, phone=user.phone, kyc_status=user.kyc_status,
+        id=user.id, name=user.name, email=user.email, phone=user.phone, date_of_birth=user.date_of_birth, kyc_status=user.kyc_status,
         verified=user.kyc_status == "APPROVED", has_pin=bool(user.pin_hash), pin_locked=user.pin_locked,
     )
 
@@ -88,9 +120,29 @@ def bank_out(a: BankAccount) -> BankAccountOut:
     )
 
 
+@router.post("/auth/email-code", response_model=EmailCodeOut, status_code=202)
+def request_email_code(body: EmailCodeIn, db: Session = Depends(get_db)):
+    """Langkah 1 daftar akun dan lupa kata sandi: kirim kode 6 angka ke email."""
+    code = service.request_email_code(db, body.email, body.purpose)
+    db.commit()
+    settings = get_settings()
+    return EmailCodeOut(
+        expires_in_seconds=settings.email_code_ttl_seconds, resend_in_seconds=settings.email_code_resend_seconds, dev_code=code
+    )
+
+
+@router.post("/auth/email-code/verify", response_model=EmailTicketOut)
+def verify_email_code(body: EmailVerifyIn, db: Session = Depends(get_db)):
+    """Langkah 2: tukar kode dengan tiket. Maksimal 5 kali salah per kode."""
+    ticket = service.verify_email_code(db, body.email, body.purpose, body.code)
+    db.commit()
+    return EmailTicketOut(email_ticket=ticket)
+
+
 @router.post("/auth/register", response_model=SessionOut, status_code=201)
 def register(body: RegisterIn, request: Request, db: Session = Depends(get_db)):
-    user = service.register(db, body.name, body.email, body.password, body.phone)
+    """Langkah 3: buat akun dengan tiket verifikasi email, lalu langsung masuk."""
+    user = service.register(db, body.email_ticket, body.name, body.email, body.password, body.phone, body.date_of_birth)
     db.add(Wallet(user_id=user.id, available=0, held=0))
     info = client_info(request)
     _, token = service.login(db, body.email, body.password, info["device_id"], info["user_agent"])
@@ -104,6 +156,13 @@ def login(body: LoginIn, request: Request, db: Session = Depends(get_db)):
     _, token = service.login(db, body.email, body.password, info["device_id"], info["user_agent"])
     db.commit()
     return SessionOut(access_token=token)
+
+
+@router.post("/auth/password-reset", status_code=204)
+def reset_password(body: PasswordResetIn, db: Session = Depends(get_db)):
+    """Ganti kata sandi dengan tiket verifikasi email. Semua sesi lama ikut keluar."""
+    service.reset_password(db, body.email_ticket, body.new_password)
+    db.commit()
 
 
 @router.post("/auth/logout", status_code=204)

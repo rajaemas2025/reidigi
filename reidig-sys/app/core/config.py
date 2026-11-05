@@ -24,6 +24,13 @@ class Settings(BaseSettings):
     session_ttl_hours: int = 24 * 30
     max_pin_attempts: int = 5
 
+    # Kode verifikasi email
+    email_code_ttl_seconds: int = 10 * 60
+    email_code_resend_seconds: int = 30
+    email_code_max_per_hour: int = 5
+    email_code_max_attempts: int = 5
+    email_ticket_ttl_seconds: int = 30 * 60
+
     # Nilai sementara, menunggu keputusan bisnis.
     daily_buy_limit: int = 0  # 0 = tanpa batas
     min_withdrawal: int = 10_000
