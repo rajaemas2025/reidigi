@@ -32,6 +32,20 @@ Konfigurasi memakai variabel lingkungan berawalan `REIDIG_`. Contohnya ada di [.
 - **Pengguna:** `demo@reidig.id` / `demo1234`, PIN `147258`. Akun ini sudah lolos KYC, punya saldo Rp 2.310.000 dan tiga token yang sudah bisa dijual.
 - **Admin:** `spv@reidig.id`, `gudang-a@`, `gudang-b@`, `treasury-a@`, `treasury-b@`, `finance@`, `compliance@`, `cs@`, `auditor@` (semuanya `@reidig.id`), kata sandi `reidig-dev-123`.
 
+## Daftar, masuk, dan lupa kata sandi
+
+Alurnya sama dengan layar Android: email, lalu kode 6 angka, lalu data diri dan kata sandi.
+
+1. `POST /v1/auth/email-code` dengan `{"email": "…", "purpose": "REGISTER"}`. Di dev, kode ikut dikembalikan di `dev_code` dan dicatat di log.
+2. `POST /v1/auth/email-code/verify` dengan `{"email", "purpose", "code"}`. Hasilnya `email_ticket`, berlaku 30 menit dan sekali pakai.
+3. `POST /v1/auth/register` dengan `{"email_ticket", "name", "email", "password", "date_of_birth"}`. Akun langsung masuk dan mendapat `access_token`.
+
+Masuk lewat `POST /v1/auth/login`, keluar lewat `POST /v1/auth/logout`. Token dikirim sebagai `Authorization: Bearer …` dan berlaku 30 hari.
+
+Lupa kata sandi memakai langkah 1 dan 2 dengan `purpose` `RESET_PASSWORD`, lalu `POST /v1/auth/password-reset` dengan `{"email_ticket", "new_password"}`. Semua sesi lama ikut keluar. Email yang tidak terdaftar tetap mendapat respons sukses, supaya tidak bisa dipakai menebak akun.
+
+Batasan kode: berlaku 10 menit, kirim ulang setelah 30 detik, maksimal 5 kode per jam per email, dan maksimal 5 kali salah per kode.
+
 ## Mencoba pembayaran
 
 QRIS dan VA mengembalikan kode tiruan. Di lingkungan dev, endpoint berikut meniru callback bertanda tangan dari luar:
@@ -97,7 +111,9 @@ Di produksi, cabut juga izin `UPDATE` dan `DELETE` pada tabel jejak dari role ap
 | Tarik harga | Input manual Treasury (`POST /v1/admin/prices`), batas usia harga nonaktif | Job penarik harga, lalu aktifkan `REIDIG_PRICE_MAX_AGE_SECONDS` |
 | Mitra cicilan | Webhook rekaan; gagal bayar hanya mengubah status token dan keping | Kontrak mitra, termasuk penyelesaian keuangan saat gagal bayar |
 | Login admin | Email dan kata sandi | SSO |
-| OTP email dan HP | Belum ada | Penyedia OTP |
+| Email kode verifikasi | Dicatat di log dan dikembalikan di `dev_code`. Di produksi ditolak (`app/identity/mailer.py`) | Penyedia email |
+| OTP nomor HP | Belum ada | Penyedia OTP WhatsApp/SMS |
+| Masuk dengan Google | Belum ada | Google Sign-In |
 
 Nilai yang menunggu keputusan bisnis: tarif PPh 22 (sementara 1,5% di atas Rp 10 juta), batas pembelian harian, minimal penarikan, tenor cicilan, dan isi perjanjian cicilan (draf, belum ditinjau legal).
 

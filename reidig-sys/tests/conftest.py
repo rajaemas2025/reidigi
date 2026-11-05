@@ -60,6 +60,19 @@ def db(Session):
         yield s
 
 
+def email_ticket(client: TestClient, email: str, purpose: str = "REGISTER") -> str:
+    r = client.post("/v1/auth/email-code", json={"email": email, "purpose": purpose})
+    assert r.status_code == 202, r.text
+    r = client.post("/v1/auth/email-code/verify", json={"email": email, "purpose": purpose, "code": r.json()["dev_code"]})
+    assert r.status_code == 200, r.text
+    return r.json()["email_ticket"]
+
+
+def register(client: TestClient, name: str, email: str, password: str = "rahasia123", **extra):
+    body = {"email_ticket": email_ticket(client, email), "name": name, "email": email, "password": password, **extra}
+    return client.post("/v1/auth/register", json=body)
+
+
 class Api:
     def __init__(self, client: TestClient):
         self.client = client
@@ -138,7 +151,7 @@ def new_user(client):
 
     def make(email="baru@reidig.id", name="Budi Santoso"):
         api = Api(client)
-        r = client.post("/v1/auth/register", json={"name": name, "email": email, "password": "rahasia123"})
+        r = register(client, name, email)
         assert r.status_code == 201, r.text
         api.headers = {"Authorization": f"Bearer {r.json()['access_token']}"}
         api.ok("post", "/v1/kyc", {"full_name": name, "nik": "3171000000000999", "date_of_birth": "1995-05-05"})

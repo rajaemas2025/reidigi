@@ -1,7 +1,8 @@
 import re
+import secrets
 from datetime import date, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from app.admin.audit import audit
@@ -9,7 +10,8 @@ from app.core import clock
 from app.core.config import get_settings
 from app.core.errors import ApiError
 from app.core.security import hash_secret, new_session_token, sha256_hex, verify_secret
-from app.identity.models import BankAccount, Device, KycRecord, User, UserSession
+from app.identity.mailer import send_email_code
+from app.identity.models import BankAccount, Device, EmailCode, KycRecord, User, UserSession
 
 EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$")
 
@@ -47,26 +49,169 @@ def normalize_name(name: str) -> str:
 # ----- Akun dan sesi -----
 
 
-def register(db: Session, name: str, email: str, password: str, phone: str | None) -> User:
-    email = email.strip().lower()
+def normalize_email(email: str) -> str:
+    return email.strip().lower()
+
+
+def validate_password(password: str) -> None:
+    if not is_valid_password(password):
+        raise ApiError("INVALID", "Kata sandi minimal 8 karakter dengan huruf dan angka.")
+
+
+def create_user(
+    db: Session, name: str, email: str, password: str, phone: str | None, dob: date | None = None
+) -> User:
+    """Validasi dan simpan akun. Pemanggil dari API wajib lewat `register` (email sudah diverifikasi)."""
+    email = normalize_email(email)
     if not EMAIL.match(email):
         raise ApiError("INVALID", "Format email tidak valid.")
     if len(name.strip()) < 3:
         raise ApiError("INVALID", "Nama minimal 3 huruf.")
-    if not is_valid_password(password):
-        raise ApiError("INVALID", "Kata sandi minimal 8 karakter dengan huruf dan angka.")
+    if len(name.strip()) > 120:
+        raise ApiError("INVALID", "Nama maksimal 120 karakter.")
+    validate_password(password)
     if phone is not None and not (is_ascii_digits(phone) and phone.startswith("8") and 9 <= len(phone) <= 12):
         raise ApiError("INVALID", "Nomor HP ditulis setelah +62, tanpa angka 0 di depan.")
-    if db.scalar(select(User.id).where(User.email == email)):
+    if dob is not None and not is_adult(dob, clock.now().date()):
+        raise ApiError("INVALID", "Pengguna minimal berusia 18 tahun.")
+    if email_taken(db, email):
         raise ApiError("DUPLICATE", "Email sudah terdaftar.")
-    user = User(name=name.strip(), email=email, phone=phone, password_hash=hash_secret(password))
+    user = User(name=name.strip(), email=email, phone=phone, date_of_birth=dob, password_hash=hash_secret(password))
     db.add(user)
     db.flush()
     return user
 
 
+def register(
+    db: Session, ticket: str, name: str, email: str, password: str, phone: str | None, dob: date | None
+) -> User:
+    user = create_user(db, name, email, password, phone, dob)
+    consume_email_ticket(db, ticket, "REGISTER", user.email)
+    return user
+
+
+def email_taken(db: Session, email: str) -> bool:
+    return db.scalar(select(User.id).where(User.email == normalize_email(email))) is not None
+
+
+# ----- Kode verifikasi email -----
+
+PURPOSES = ("REGISTER", "RESET_PASSWORD")
+
+
+def request_email_code(db: Session, email: str, purpose: str) -> str | None:
+    """Kirim kode 6 angka. Mengembalikan kode hanya di dev, untuk diuji tanpa penyedia email.
+
+    Atur ulang kata sandi selalu tampak berhasil, supaya tidak bisa dipakai menebak email yang terdaftar.
+    """
+    settings = get_settings()
+    email = normalize_email(email)
+    if purpose not in PURPOSES:
+        raise ApiError("INVALID", "Tujuan kode tidak dikenal.")
+    if not EMAIL.match(email):
+        raise ApiError("INVALID", "Format email tidak valid.")
+    registered = email_taken(db, email)
+    if purpose == "REGISTER" and registered:
+        raise ApiError("DUPLICATE", "Email sudah terdaftar. Silakan masuk.")
+    if purpose == "RESET_PASSWORD" and not registered:
+        return None
+
+    now = clock.now()
+    last = latest_code(db, email, purpose)
+    if last and last.created_at > now - timedelta(seconds=settings.email_code_resend_seconds):
+        wait = int((last.created_at + timedelta(seconds=settings.email_code_resend_seconds) - now).total_seconds()) + 1
+        raise ApiError("TOO_MANY_REQUESTS", f"Tunggu {wait} detik sebelum meminta kode baru.")
+    sent_last_hour = db.scalar(
+        select(func.count(EmailCode.id)).where(EmailCode.email == email, EmailCode.created_at > now - timedelta(hours=1))
+    )
+    if sent_last_hour >= settings.email_code_max_per_hour:
+        raise ApiError("TOO_MANY_REQUESTS", "Terlalu banyak permintaan kode. Coba lagi dalam 1 jam.")
+
+    # Kode lama tidak berlaku lagi setelah kode baru dikirim.
+    db.execute(
+        update(EmailCode)
+        .where(EmailCode.email == email, EmailCode.purpose == purpose, EmailCode.consumed_at.is_(None))
+        .values(consumed_at=now)
+    )
+    code = f"{secrets.randbelow(10**6):06d}"
+    db.add(
+        EmailCode(
+            email=email,
+            purpose=purpose,
+            code_hash=hash_secret(code),
+            created_at=now,
+            expires_at=now + timedelta(seconds=settings.email_code_ttl_seconds),
+        )
+    )
+    send_email_code(email, purpose, code)
+    return code if settings.is_dev else None
+
+
+def latest_code(db: Session, email: str, purpose: str) -> EmailCode | None:
+    return db.scalar(
+        select(EmailCode).where(EmailCode.email == email, EmailCode.purpose == purpose).order_by(EmailCode.id.desc()).limit(1)
+    )
+
+
+def verify_email_code(db: Session, email: str, purpose: str, code: str) -> str:
+    """Kode benar: kembalikan tiket sekali pakai. Percobaan gagal langsung disimpan."""
+    settings = get_settings()
+    email = normalize_email(email)
+    record = latest_code(db, email, purpose)
+    now = clock.now()
+    if (
+        record is None
+        or record.consumed_at
+        or record.verified_at
+        or record.expires_at <= now
+        or record.attempts >= settings.email_code_max_attempts
+    ):
+        raise ApiError("INVALID_CODE", "Kode sudah tidak berlaku. Kirim ulang kode.")
+    if not verify_secret(code.strip(), record.code_hash):
+        record.attempts += 1
+        remaining = settings.email_code_max_attempts - record.attempts
+        db.commit()
+        if remaining <= 0:
+            raise ApiError("INVALID_CODE", "Terlalu banyak percobaan. Kirim ulang kode.")
+        raise ApiError("INVALID_CODE", f"Kode salah. Sisa {remaining} percobaan.")
+    ticket = new_session_token()
+    record.verified_at = now
+    record.ticket_hash = sha256_hex(ticket)
+    return ticket
+
+
+def consume_email_ticket(db: Session, ticket: str, purpose: str, email: str | None = None) -> str:
+    """Tandai tiket terpakai dan kembalikan emailnya."""
+    record = db.scalar(select(EmailCode).where(EmailCode.ticket_hash == sha256_hex(ticket)).with_for_update())
+    expired = record is not None and record.verified_at + timedelta(seconds=get_settings().email_ticket_ttl_seconds) <= clock.now()
+    if record is None or record.purpose != purpose or record.consumed_at or expired:
+        raise ApiError("INVALID_CODE", "Verifikasi email sudah tidak berlaku. Ulangi dari awal.")
+    if email is not None and record.email != normalize_email(email):
+        raise ApiError("INVALID_CODE", "Email tidak sama dengan email yang diverifikasi.")
+    record.consumed_at = clock.now()
+    return record.email
+
+
+def reset_password(db: Session, ticket: str, new_password: str) -> User:
+    validate_password(new_password)
+    email = consume_email_ticket(db, ticket, "RESET_PASSWORD")
+    user = db.scalar(select(User).where(User.email == email))
+    if user is None:
+        raise ApiError("INVALID_CODE", "Verifikasi email sudah tidak berlaku. Ulangi dari awal.")
+    user.password_hash = hash_secret(new_password)
+    # Semua perangkat harus masuk lagi dengan kata sandi baru.
+    db.execute(
+        update(UserSession).where(UserSession.user_id == user.id, UserSession.revoked_at.is_(None)).values(revoked_at=clock.now())
+    )
+    audit(db, user, "PASSWORD_RESET", f"Pengguna #{user.id}")
+    return user
+
+
+# ----- Sesi -----
+
+
 def login(db: Session, email: str, password: str, device_id: str | None, user_agent: str | None) -> tuple[User, str]:
-    user = db.scalar(select(User).where(User.email == email.strip().lower()))
+    user = db.scalar(select(User).where(User.email == normalize_email(email)))
     if user is None or not verify_secret(password, user.password_hash):
         raise ApiError("INVALID_CREDENTIALS", "Email atau kata sandi salah. Coba lagi.")
     token = new_session_token()
