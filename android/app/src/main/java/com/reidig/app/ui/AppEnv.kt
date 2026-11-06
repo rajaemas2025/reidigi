@@ -1,14 +1,20 @@
 package com.reidig.app.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -16,8 +22,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.reidig.shared.MockRepository
@@ -67,24 +77,58 @@ private val DATE_FORMAT = DateTimeFormatter.ofPattern("d MMM yyyy, HH.mm", Local
 
 fun dateTime(ms: Long): String = DATE_FORMAT.format(Instant.ofEpochMilli(ms)) + " WIB"
 
-/** Konfirmasi PIN sebelum transaksi. */
+/** Konfirmasi PIN dengan gaya bottom-sheet seperti pada prototipe Goldin v1. */
 @Composable
 fun PinDialog(env: AppEnv, title: String, onDismiss: () -> Unit, onVerified: () -> Unit) {
     var code by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Column(
-            Modifier.fillMaxSize().background(Color.White).statusBarsPadding().navigationBarsPadding(),
+        Box(
+            Modifier.fillMaxSize()
+                .background(Color(0x8C0F052C))
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() },
+                    onClick = onDismiss,
+                ),
+            contentAlignment = Alignment.BottomCenter,
         ) {
-            TopTitleBar("Masukkan PIN", onDismiss)
-            Column(Modifier.weight(1f).padding(20.dp)) {
-                Headline(title)
-                Spacer(Modifier.height(36.dp))
-                CodeDots(code.length, error = error != null)
+            Column(
+                Modifier.fillMaxWidth()
+                    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                    .background(Color.White)
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() },
+                        onClick = {},
+                    )
+                    .navigationBarsPadding()
+                    .padding(start = 24.dp, end = 24.dp, top = 14.dp, bottom = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Box(Modifier.width(36.dp).height(4.dp).clip(RoundedCornerShape(50)).background(Palette.Line))
                 Spacer(Modifier.height(18.dp))
-                error?.let { ErrorLine(it, Modifier.align(Alignment.CenterHorizontally)) }
-            }
-            Column(Modifier.padding(20.dp)) {
+                Text("Masukkan PIN", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Palette.Ink)
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    title,
+                    color = Palette.InkSecondary,
+                    fontSize = 13.sp,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(Modifier.height(20.dp))
+                CodeBoxes(code = code, masked = true, error = error != null)
+                Spacer(Modifier.height(10.dp))
+                if (error != null) {
+                    ErrorLine(error!!)
+                } else {
+                    Text(
+                        "Masukkan 6 digit PIN keamananmu",
+                        color = Palette.InkSoft,
+                        fontSize = 12.sp,
+                    )
+                }
+                Spacer(Modifier.height(16.dp))
                 NumberPad(
                     onDigit = { digit ->
                         if (code.length < 6) {

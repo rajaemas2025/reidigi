@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -41,18 +43,18 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
-private val BarTop = Color(0xFFF0D48A)
-private val BarMiddle = Color(0xFFE0B553)
-private val BarBottom = Color(0xFFC99A3B)
-private val BarBase = Color(0xFFA67C2B)
+private val BarTop = Color(0xFFF0E3B8)
+private val BarMiddle = Color(0xFFE1C162)
+private val BarBottom = Color(0xFFD4AF37)
+private val BarBase = Color(0xFF966E0E)
 
 /** Latar gelap dengan cahaya ungu di tengah, untuk layar pembuka. */
 val GlowGradient = Brush.radialGradient(
-    listOf(Color(0xFF4B3090), Color.Transparent),
+    listOf(Color(0xFF5436AA), Color.Transparent),
     radius = 900f,
 )
 
-/** Tumpukan emas batangan seperti pada desain. */
+/** Tumpukan emas batangan seperti pada desain prototipe. */
 @Composable
 fun GoldBarArt(width: Dp, modifier: Modifier = Modifier) {
     Canvas(modifier.size(width, width * 0.62f)) {
@@ -68,7 +70,7 @@ fun GoldBarArt(width: Dp, modifier: Modifier = Modifier) {
             }
             drawPath(path, color)
         }
-        drawOval(Color.Black.copy(alpha = 0.28f), Offset(0f, h * 0.84f), Size(w, h * 0.16f))
+        drawOval(Color.Black.copy(alpha = 0.14f), Offset(0f, h * 0.84f), Size(w, h * 0.16f))
         trapezoid(0f, h * 0.2f, 0.38f, 0.3f, BarTop)
         trapezoid(h * 0.2f, h * 0.42f, 0.3f, 0.2f, BarMiddle)
         trapezoid(h * 0.42f, h * 0.78f, 0.2f, 0.06f, BarBottom)
@@ -79,11 +81,47 @@ fun GoldBarArt(width: Dp, modifier: Modifier = Modifier) {
     }
 }
 
+/** Ikon 3 batang emas bertumpuk di dalam kotak ungu sesuai header Beranda prototipe. */
+@Composable
+fun GoldBarsBadge(size: Dp = 40.dp, cornerRadius: Dp = 12.dp) {
+    Box(
+        Modifier.size(size).clip(RoundedCornerShape(cornerRadius)).background(Palette.Primary),
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(Modifier.size(size * 0.5f)) {
+            val w = this.size.width
+            val h = this.size.height
+            val barH = h * 0.22f
+            val r = CornerRadius(2.dp.toPx(), 2.dp.toPx())
+            // Top bar
+            drawRoundRect(
+                color = Palette.Gold,
+                topLeft = Offset(w * 0.2f, h * 0.12f),
+                size = Size(w * 0.6f, barH),
+                cornerRadius = r,
+            )
+            // Bottom left bar
+            drawRoundRect(
+                color = Palette.Gold,
+                topLeft = Offset(0f, h * 0.56f),
+                size = Size(w * 0.46f, barH),
+                cornerRadius = r,
+            )
+            // Bottom right bar
+            drawRoundRect(
+                color = Palette.Gold,
+                topLeft = Offset(w * 0.54f, h * 0.56f),
+                size = Size(w * 0.46f, barH),
+                cornerRadius = r,
+            )
+        }
+    }
+}
+
 /** Taburan konfeti statis untuk layar selesai verifikasi. */
 fun DrawScope.drawConfetti() {
-    val colors = listOf(Palette.Gold, Color(0xFFB9A6E8))
+    val colors = listOf(Palette.Gold, Palette.Primary300)
     repeat(26) { index ->
-        // Sudut dan jarak tetap, supaya susunannya sama di setiap tampilan.
         val angle = index * 2.4f
         val distance = 0.28f + (index % 7) * 0.1f
         val x = size.width * (0.5f + distance * cos(angle) * 0.75f)
@@ -94,7 +132,7 @@ fun DrawScope.drawConfetti() {
                 colors[index % colors.size].copy(alpha = 0.75f),
                 Offset(x, y),
                 Size(piece * 1.5f, piece),
-                androidx.compose.ui.geometry.CornerRadius(2.dp.toPx()),
+                CornerRadius(2.dp.toPx()),
             )
         }
     }
@@ -107,19 +145,19 @@ private inline fun DrawScope.rotateAround(degrees: Float, pivot: Offset, block: 
     drawContext.canvas.restore()
 }
 
-/** Tombol masuk dengan akun Google. */
+/** Tombol masuk dengan akun Google sesuai gaya outlined button prototipe. */
 @Composable
 fun GoogleButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     OutlinedButton(
         onClick = onClick,
         modifier = modifier.fillMaxWidth().height(48.dp),
         shape = RoundedCornerShape(50),
-        border = BorderStroke(1.dp, Palette.FieldBorder),
-        colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Palette.Ink),
+        border = BorderStroke(1.5.dp, Palette.Primary),
+        colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.Transparent, contentColor = Palette.Primary),
     ) {
-        Image(painterResource(R.drawable.ic_google), null, Modifier.size(20.dp))
+        Image(painterResource(R.drawable.ic_google), null, Modifier.size(18.dp))
         Spacer(Modifier.width(10.dp))
-        Text(text, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+        Text(text, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Palette.Primary)
     }
 }
 
@@ -127,19 +165,23 @@ fun GoogleButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifie
 @Composable
 fun VerifiedBanner(text: AnnotatedString) {
     Row(
-        Modifier.fillMaxWidth().cardDepth(Color(0xFFE6F8F0), RoundedCornerShape(14.dp)).padding(12.dp),
+        Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Palette.GoodSoft)
+            .border(1.dp, Palette.Good.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+            .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(28.dp).clip(CircleShape).background(Palette.Good), contentAlignment = Alignment.Center) {
-            Icon(Icons.Filled.Check, null, tint = Color.White, modifier = Modifier.size(16.dp))
+        Box(Modifier.size(24.dp).clip(CircleShape).background(Palette.Good), contentAlignment = Alignment.Center) {
+            Icon(Icons.Filled.Check, null, tint = Color.White, modifier = Modifier.size(14.dp))
         }
         Spacer(Modifier.width(10.dp))
-        Text(text, color = Color(0xFF0F4B33), fontSize = 14.sp)
+        Text(text, color = Palette.Good700, fontSize = 13.5.sp)
     }
 }
 
 @ScreenPreview
-@androidx.compose.runtime.Composable
+@Composable
 private fun GoldBarPreview() = ReidigTheme {
-    Box(Modifier.background(Palette.Night).padding(24.dp)) { GoldBarArt(180.dp) }
+    Box(Modifier.background(Palette.Primary).padding(24.dp)) { GoldBarArt(180.dp) }
 }
