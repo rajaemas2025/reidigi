@@ -16,23 +16,14 @@ import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.compose.foundation.Image
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalInspectionMode
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.content.ContextCompat
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -50,23 +41,25 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Sms
+import androidx.compose.material.icons.outlined.CenterFocusStrong
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -77,21 +70,31 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.reidig.shared.MockRepository
 import com.reidig.shared.Rules
 import kotlinx.coroutines.delay
@@ -113,31 +116,30 @@ fun KycConsentScreen(onBack: () -> Unit, onNext: () -> Unit) {
             PrimaryButton("Setuju & mulai verifikasi", onNext, enabled = terms && data)
             if (!(terms && data)) {
                 Spacer(Modifier.height(8.dp))
-                Text("Centang dua pernyataan wajib untuk lanjut.", color = Palette.InkSoft, fontSize = 13.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                Text("Centang dua pernyataan wajib untuk lanjut.", color = Palette.InkSoft, fontSize = 12.5.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
             }
         },
     ) {
-        Row(
-            Modifier.fillMaxWidth().darkCardDepth(Palette.Primary).padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(Color.White.copy(alpha = 0.14f)), contentAlignment = Alignment.Center) {
-                Icon(Icons.Outlined.Shield, null, tint = Palette.Gold)
-            }
-            Spacer(Modifier.width(12.dp))
-            Column {
-                Text("Verifikasi sekali untuk mulai membeli emas", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp, lineHeight = 20.sp)
-                Text("Butuh sekitar 2 menit", color = Color.White.copy(alpha = 0.75f), fontSize = 13.sp)
+        HeroPurpleCard(shape = RoundedCornerShape(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(Color.White.copy(alpha = 0.14f)), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Outlined.Shield, null, tint = Palette.Gold)
+                }
+                Spacer(Modifier.width(12.dp))
+                Column {
+                    Text("Verifikasi sekali untuk mulai membeli emas", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.5.sp, lineHeight = 20.sp)
+                    Text("Cukup sekitar 2 menit", color = Palette.Primary200, fontSize = 12.5.sp)
+                }
             }
         }
-        Spacer(Modifier.height(18.dp))
-        Headline("Verifikasi identitas", "Wajib sebelum pembelian pertama.")
         Spacer(Modifier.height(16.dp))
-        Column(Modifier.fillMaxWidth().cardDepth().padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 2.dp)) {
-            PolicyItem("1. Akun Anda", "Usia minimal 18 tahun dengan KTP yang berlaku. Satu orang satu akun.")
-            PolicyItem("2. Perdagangan emas", "Keping emas disimpan di gudang dan dicatat per nomor seri. Harga dikunci sebentar saat Anda bertransaksi.")
-            PolicyItem("3. Verifikasi identitas", "Kami memeriksa KTP dan wajah Anda sesuai aturan anti pencucian uang.")
-            PolicyItem("4. Privasi data", "Kami tidak menjual data Anda.")
+        Headline("Ketentuan verifikasi (e-KYC)", "Wajib sebelum transaksi emas pertama.", titleColor = Palette.Primary)
+        Spacer(Modifier.height(14.dp))
+        SurfaceCard {
+            PolicyItem("1. Akun Anda", "Usia minimal 18 tahun dengan e-KTP yang berlaku. Satu orang satu akun.")
+            PolicyItem("2. Perdagangan emas", "Keping emas disimpan di brankas dan dicatat per nomor seri. Harga dikunci sebentar saat Anda bertransaksi.")
+            PolicyItem("3. Verifikasi identitas", "Kami memeriksa e-KTP dan wajah Anda sesuai ketentuan regulator & APU-PPT.")
+            PolicyItem("4. Privasi data", "Data dienkripsi AES-256 dan tidak diperjualbelikan.", isLast = true)
         }
         Spacer(Modifier.height(14.dp))
         ConsentRow("Saya sudah membaca dan menyetujui Ketentuan Layanan. *", terms) { terms = it }
@@ -151,11 +153,11 @@ fun KycConsentScreen(onBack: () -> Unit, onNext: () -> Unit) {
 private fun KycConsentPreview() = ReidigTheme { KycConsentScreen({}, {}) }
 
 @Composable
-private fun PolicyItem(title: String, body: String) {
-    Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+private fun PolicyItem(title: String, body: String, isLast: Boolean = false) {
+    Text(title, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Palette.Ink)
     Spacer(Modifier.height(3.dp))
-    Text(body, color = Palette.InkSoft, fontSize = 14.sp, lineHeight = 20.sp)
-    Spacer(Modifier.height(14.dp))
+    Text(body, color = Palette.InkSecondary, fontSize = 13.sp, lineHeight = 19.sp)
+    if (!isLast) Spacer(Modifier.height(12.dp))
 }
 
 @Composable
@@ -163,14 +165,16 @@ internal fun ConsentRow(text: String, checked: Boolean, onChange: (Boolean) -> U
     val shape = RoundedCornerShape(12.dp)
     Row(
         Modifier.fillMaxWidth().padding(bottom = 10.dp)
-            .cardDepth(if (checked) Palette.Lavender else Color.White, shape, if (checked) Palette.Primary else null)
+            .clip(shape)
+            .background(if (checked) Palette.Primary50 else Color.White)
+            .border(if (checked) 2.dp else 1.dp, if (checked) Palette.Primary else Palette.Line, shape)
             .clickable(role = Role.Checkbox) { onChange(!checked) }
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Checkbox(checked, null, colors = CheckboxDefaults.colors(checkedColor = Palette.Primary, uncheckedColor = Palette.Primary))
+        Checkbox(checked, null, colors = CheckboxDefaults.colors(checkedColor = Palette.Primary, uncheckedColor = Palette.Line))
         Spacer(Modifier.width(10.dp))
-        Text(text, fontSize = 14.sp, lineHeight = 20.sp)
+        Text(text, fontSize = 13.5.sp, lineHeight = 19.sp, color = Palette.Ink)
     }
 }
 
@@ -179,14 +183,18 @@ fun KycPhoneScreen(kyc: KycDraft, onBack: () -> Unit, onNext: () -> Unit) {
     var phone by rememberSaveable { mutableStateOf(kyc.phone) }
     val valid = Rules.isValidIndonesianPhone(phone)
     FormScreen(
-        "Nomor HP",
+        "Verifikasi nomor HP",
         onBack,
         step = 2 to STEPS,
         bottomDivider = true,
-        bottom = { PrimaryButton("Lanjut", { kyc.phone = phone; onNext() }, enabled = valid) },
+        bottom = { PrimaryButton("Lanjutkan", { kyc.phone = phone; onNext() }, enabled = valid) },
     ) {
-        Headline("Masukkan nomor HP")
-        Spacer(Modifier.height(24.dp))
+        Headline(
+            "Masukkan nomor HP aktif",
+            "Kami akan mengirimkan kode OTP untuk memastikan nomor ini milikmu.",
+            titleColor = Palette.Primary,
+        )
+        Spacer(Modifier.height(22.dp))
         FormField(
             "Nomor HP",
             phone,
@@ -199,9 +207,9 @@ fun KycPhoneScreen(kyc: KycDraft, onBack: () -> Unit, onNext: () -> Unit) {
         )
         Spacer(Modifier.height(14.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Outlined.Lock, null, tint = Palette.InkSoft, modifier = Modifier.size(16.dp))
+            Icon(Icons.Outlined.Lock, null, tint = Palette.InkSoft, modifier = Modifier.size(15.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Data Anda dienkripsi saat dikirim.", color = Palette.InkSoft, fontSize = 13.sp)
+            Text("Data Anda dienkripsi saat dikirim.", color = Palette.InkSoft, fontSize = 12.5.sp)
         }
     }
 }
@@ -214,17 +222,17 @@ private fun KycPhonePreview() = ReidigTheme { KycPhoneScreen(previewKyc(), {}, {
 fun KycChannelScreen(kyc: KycDraft, onBack: () -> Unit, onNext: () -> Unit) {
     var channel by rememberSaveable { mutableStateOf(kyc.channel) }
     FormScreen(
-        "Kirim kode",
+        "Verifikasi nomor HP",
         onBack,
         step = 2 to STEPS,
         bottomDivider = true,
         bottom = { PrimaryButton("Kirim kode lewat $channel", { kyc.channel = channel; onNext() }) },
     ) {
-        Headline("Kirim kode lewat apa?", "Ke nomor +62 ${kyc.phone}")
-        Spacer(Modifier.height(24.dp))
-        ChannelCard("WhatsApp", "Pakai kuota data", Icons.AutoMirrored.Filled.Chat, Color(0xFF128C4F), channel == "WhatsApp") { channel = "WhatsApp" }
+        Headline("Kirim OTP lewat", "Ke nomor +62 ${kyc.phone}", titleColor = Palette.Primary)
+        Spacer(Modifier.height(22.dp))
+        ChannelCard("WhatsApp", "Direkomendasikan · lebih cepat", Icons.AutoMirrored.Filled.Chat, Color(0xFF16A34A), channel == "WhatsApp") { channel = "WhatsApp" }
         Spacer(Modifier.height(12.dp))
-        ChannelCard("SMS", "Mungkin ada biaya dari operator", Icons.Filled.Sms, Palette.Primary, channel == "SMS") { channel = "SMS" }
+        ChannelCard("SMS", "Pulsa reguler operator", Icons.Filled.Sms, Palette.Primary, channel == "SMS") { channel = "SMS" }
     }
 }
 
@@ -237,26 +245,28 @@ private fun ChannelCard(title: String, subtitle: String, icon: ImageVector, tint
     val shape = RoundedCornerShape(16.dp)
     Row(
         Modifier.fillMaxWidth()
-            .then(if (selected) Modifier.border(3.dp, Palette.Ring, RoundedCornerShape(18.dp)).padding(3.dp) else Modifier.padding(3.dp))
-            .cardDepth(if (selected) Palette.Lavender else Color.White, shape, if (selected) Palette.Primary else null)
-            .clickable(role = Role.RadioButton, onClick = onClick).padding(16.dp),
+            .clip(shape)
+            .background(if (selected) Palette.Primary50 else Color.White)
+            .border(if (selected) 2.dp else 1.5.dp, if (selected) Palette.Primary else Palette.Line, shape)
+            .clickable(role = Role.RadioButton, onClick = onClick)
+            .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(tint), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(tint), contentAlignment = Alignment.Center) {
             Icon(icon, null, tint = Color.White)
         }
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-            Text(subtitle, color = Palette.InkSoft, fontSize = 13.sp)
+            Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Palette.Ink)
+            Text(subtitle, color = Palette.InkSecondary, fontSize = 12.5.sp)
         }
         Spacer(Modifier.width(8.dp))
         if (selected) {
-            Box(Modifier.size(24.dp).clip(CircleShape).background(Palette.Primary), contentAlignment = Alignment.Center) {
-                Icon(Icons.Filled.Check, null, tint = Color.White, modifier = Modifier.size(15.dp))
+            Box(Modifier.size(22.dp).clip(CircleShape).background(Palette.Primary), contentAlignment = Alignment.Center) {
+                Icon(Icons.Filled.Check, null, tint = Color.White, modifier = Modifier.size(14.dp))
             }
         } else {
-            Box(Modifier.size(24.dp).border(1.5.dp, Palette.DisabledText, CircleShape))
+            Box(Modifier.size(22.dp).border(1.5.dp, Palette.Line, CircleShape))
         }
     }
 }
@@ -265,11 +275,10 @@ private enum class ScanStage { IDLE, CAPTURING, FLASH, SCANNING, CAPTURED }
 
 /**
  * Kamera sungguhan untuk foto KTP. Foto hanya disimpan di memori dan hilang saat layar ditutup.
- * Pembacaan data (OCR) dan pengunggahan menunggu vendor KYC, sehingga isi KTP belum diproses.
  */
 @Composable
 fun KycScanIdScreen(onBack: () -> Unit, onCaptured: () -> Unit) {
-    CameraPermissionGate("Pindai KTP", "Izinkan kamera untuk memotret KTP", onBack) {
+    CameraPermissionGate("Foto e-KTP", "Izinkan kamera untuk memotret e-KTP", onBack) {
         KtpCamera(onBack, onCaptured)
     }
 }
@@ -278,10 +287,8 @@ fun KycScanIdScreen(onBack: () -> Unit, onCaptured: () -> Unit) {
 @Composable
 private fun KycScanIdPreview() = ReidigTheme { KycScanIdScreen({}, {}) }
 
-/** Meminta izin kamera, lalu menampilkan isi kalau sudah diizinkan. */
 @Composable
 private fun CameraPermissionGate(title: String, request: String, onBack: () -> Unit, content: @Composable () -> Unit) {
-    // Panel preview tidak bisa meminta izin.
     if (LocalInspectionMode.current) {
         content()
         return
@@ -297,7 +304,6 @@ private fun CameraPermissionGate(title: String, request: String, onBack: () -> U
     LaunchedEffect(Unit) {
         if (!granted) launcher.launch(Manifest.permission.CAMERA)
     }
-    // Izin bisa diberikan dari Pengaturan saat aplikasi di latar belakang.
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -356,15 +362,15 @@ private fun KtpCamera(onBack: () -> Unit, onCaptured: () -> Unit) {
     }
 
     val message = when (stage) {
-        ScanStage.CAPTURING, ScanStage.FLASH, ScanStage.SCANNING -> "Tahan… sedang memproses foto"
-        ScanStage.CAPTURED -> "KTP terfoto"
-        ScanStage.IDLE -> error ?: "Letakkan bagian depan KTP di dalam bingkai"
+        ScanStage.CAPTURING, ScanStage.FLASH, ScanStage.SCANNING -> "Tahan… sedang membaca data e-KTP"
+        ScanStage.CAPTURED -> "e-KTP berhasil difoto"
+        ScanStage.IDLE -> error ?: "Posisikan e-KTP tepat di dalam bingkai"
     }
-    CameraScaffold("Pindai KTP", onBack, message) {
-        Box(Modifier.fillMaxWidth().aspectRatio(1.6f), contentAlignment = Alignment.Center) {
-            CameraSurface(previewView, Modifier.fillMaxSize().padding(6.dp).clip(RoundedCornerShape(10.dp)))
+    CameraScaffold("Foto e-KTP", onBack, message) {
+        Box(Modifier.fillMaxWidth().aspectRatio(1.58f), contentAlignment = Alignment.Center) {
+            CameraSurface(previewView, Modifier.fillMaxSize().padding(6.dp).clip(RoundedCornerShape(14.dp)))
             photo?.let {
-                Image(it.asImageBitmap(), "Foto KTP", contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().padding(6.dp).clip(RoundedCornerShape(10.dp)))
+                Image(it.asImageBitmap(), "Foto KTP", contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().padding(6.dp).clip(RoundedCornerShape(14.dp)))
             }
             IdFrame(stage)
             if (stage == ScanStage.FLASH) Box(Modifier.fillMaxSize().background(Color.White))
@@ -372,7 +378,7 @@ private fun KtpCamera(onBack: () -> Unit, onCaptured: () -> Unit) {
         }
         Spacer(Modifier.weight(1f))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("Cahaya cukup", "Tidak silau", "Semua sudut").forEach { CameraTip(it) }
+            listOf("e-KTP asli", "Cahaya cukup", "Semua sudut jelas").forEach { CameraTip(it) }
         }
         Spacer(Modifier.height(20.dp))
         ShutterButton(enabled = stage == ScanStage.IDLE) {
@@ -398,7 +404,7 @@ private fun KtpCamera(onBack: () -> Unit, onCaptured: () -> Unit) {
             )
         }
         Spacer(Modifier.height(12.dp))
-        Text("Ketuk untuk memotret", color = Color.White.copy(alpha = 0.7f), fontSize = 13.sp, textAlign = TextAlign.Center)
+        Text("Ketuk tombol untuk ambil foto", color = Color.White.copy(alpha = 0.7f), fontSize = 13.sp, textAlign = TextAlign.Center)
     }
 }
 
@@ -407,11 +413,10 @@ private fun CameraSurface(previewView: PreviewView?, modifier: Modifier) {
     if (previewView != null) {
         AndroidView({ previewView }, modifier)
     } else {
-        Box(modifier.background(Color.DarkGray))
+        Box(modifier.background(Color(0xFF1F1638)))
     }
 }
 
-/** Menyambungkan kamera ke layar selama layar ini tampil. */
 @Composable
 private fun rememberBoundPreview(
     selector: CameraSelector,
@@ -419,7 +424,6 @@ private fun rememberBoundPreview(
     onReady: () -> Unit,
     onError: () -> Unit,
 ): PreviewView? {
-    // Kamera tidak tersedia di panel preview.
     if (LocalInspectionMode.current) return null
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -454,10 +458,10 @@ private fun rememberBoundPreview(
 private fun IdFrame(stage: ScanStage) {
     val transition = rememberInfiniteTransition(label = "scan")
     val line by transition.animateFloat(0.15f, 0.85f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "line")
-    val cornerColor = if (stage == ScanStage.CAPTURED) Palette.Mint else Color.White
+    val cornerColor = if (stage == ScanStage.CAPTURED) Palette.Mint else Palette.Gold
     Canvas(Modifier.fillMaxSize()) {
         val c = 30.dp.toPx()
-        val w = 3.dp.toPx()
+        val w = 3.5.dp.toPx()
         val stroke = StrokeCap.Round
         listOf(
             Offset(0f, 0f) to (1f to 1f),
@@ -485,21 +489,22 @@ private fun SuccessBadge() {
 @Composable
 private fun CameraScaffold(title: String, onBack: () -> Unit, message: String, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
     Column(
-        Modifier.fillMaxSize().background(Color(0xFF0B0A12)).statusBarsPadding().navigationBarsPadding().padding(20.dp),
+        Modifier.fillMaxSize().background(Palette.Primary950).statusBarsPadding().navigationBarsPadding().padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(Modifier.fillMaxWidth()) {
             IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, "Kembali", tint = Color.White)
             }
-            Text(title, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 17.sp, modifier = Modifier.align(Alignment.Center))
+            Text(title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp, modifier = Modifier.align(Alignment.Center))
         }
         Spacer(Modifier.height(14.dp))
         Text(
             message,
             color = Color.White,
+            fontSize = 13.5.sp,
             textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Color.Black.copy(alpha = 0.6f)).padding(12.dp),
+            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color.White.copy(alpha = 0.1f)).padding(12.dp),
         )
         Spacer(Modifier.weight(1f))
         content()
@@ -509,13 +514,18 @@ private fun CameraScaffold(title: String, onBack: () -> Unit, message: String, c
 
 @Composable
 private fun CameraTip(text: String) {
-    Text(text, color = Color.White, fontSize = 12.sp, modifier = Modifier.clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.16f)).padding(horizontal = 10.dp, vertical = 6.dp))
+    Text(
+        text,
+        color = Color.White,
+        fontSize = 11.5.sp,
+        modifier = Modifier.clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.14f)).padding(horizontal = 10.dp, vertical = 6.dp),
+    )
 }
 
 @Composable
 private fun ShutterButton(enabled: Boolean, onClick: () -> Unit) {
     Box(
-        Modifier.size(72.dp).clip(CircleShape).border(3.dp, if (enabled) Color.White else Color.Gray, CircleShape)
+        Modifier.size(72.dp).clip(CircleShape).border(4.dp, if (enabled) Palette.Gold else Color.Gray, CircleShape)
             .clickable(enabled = enabled, role = Role.Button, onClickLabel = "Potret KTP", onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -532,38 +542,72 @@ fun KycReviewScreen(signup: SignupDraft, kyc: KycDraft, onBack: () -> Unit, onRe
     var address by rememberSaveable { mutableStateOf("Jl. Merdeka No. 1, Jakarta Barat") }
     val today = LocalDate.now()
     val dobValid = Rules.isAdult(dob, today.year, today.monthValue, today.dayOfMonth)
-    // Spasi ganda diabaikan, sama dengan normalize_name di backend.
     fun normalized(value: String) = value.trim().split(Regex("\\s+")).joinToString(" ").uppercase()
     val mismatch = (signup.name.isNotBlank() && normalized(name) != normalized(signup.name)) ||
         (signup.dob.isNotBlank() && dob != signup.dob)
     val valid = Rules.isValidFullName(name) && Rules.isValidNik(nik) && dobValid && address.isNotBlank() && !mismatch
     FormScreen(
-        "Periksa data",
+        "Data diri",
         onBack,
         step = 3 to STEPS,
         bottom = {
-            PrimaryButton("Benar & lanjut", { kyc.name = name.trim(); onNext() }, enabled = valid)
-            Spacer(Modifier.height(4.dp))
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { TextLink("Pindai ulang KTP", onRescan) }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                SecondaryButton("Sebelumnya", onBack, modifier = Modifier.weight(1f))
+                PrimaryButton("Selanjutnya", { kyc.name = name.trim(); onNext() }, modifier = Modifier.weight(1f), enabled = valid)
+            }
         },
     ) {
-        Headline("Pastikan datanya benar", "Ubah kalau ada yang salah.")
+        Headline(
+            "Periksa data e-KTP",
+            "Data di bawah terisi otomatis dari foto e-KTP. Koreksi jika ada yang kurang tepat.",
+            titleColor = Palette.Primary,
+        )
         Spacer(Modifier.height(14.dp))
+
+        // Foto e-KTP · Data terbaca card (matching 09 Form Data Diri prototype)
+        SurfaceCard {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    Modifier.width(56.dp).height(38.dp).clip(RoundedCornerShape(8.dp)).background(Palette.Primary),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text("e-KTP", color = Palette.Gold, fontWeight = FontWeight.Bold, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("Foto e-KTP", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Palette.Ink)
+                    Text("✓ Data terbaca", color = Palette.Good, fontWeight = FontWeight.SemiBold, fontSize = 11.5.sp)
+                }
+                OutlinedButton(
+                    onClick = onRescan,
+                    shape = RoundedCornerShape(50),
+                    border = BorderStroke(1.dp, Palette.Primary),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                    modifier = Modifier.height(32.dp),
+                ) {
+                    Text("Foto ulang", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Palette.Primary)
+                }
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
         if (mismatch) {
             StatusChip("KTP tidak cocok dengan akun Anda", ChipTone.CRITICAL)
             Spacer(Modifier.height(6.dp))
-            Text("Nama dan tanggal lahir harus sama dengan saat mendaftar.", color = Palette.InkSoft, fontSize = 13.sp)
+            Text("Nama dan tanggal lahir harus sama dengan saat mendaftar.", color = Palette.InkSoft, fontSize = 12.5.sp)
+            Spacer(Modifier.height(8.dp))
         } else {
             StatusChip("Cocok dengan data akun", ChipTone.GOOD)
+            Spacer(Modifier.height(8.dp))
         }
-        Spacer(Modifier.height(18.dp))
-        FormField("Nama lengkap", name, { name = it }, error = if (!Rules.isValidFullName(name)) "Masukkan nama lengkap." else null)
-        Spacer(Modifier.height(14.dp))
-        FormField("NIK", nik, { nik = it.filter { c -> c.isDigit() }.take(16) }, keyboardType = KeyboardType.Number, error = if (nik.isNotEmpty() && !Rules.isValidNik(nik)) "NIK harus 16 angka." else null)
-        Spacer(Modifier.height(14.dp))
+
+        FormField("NIK (16 digit)", nik, { nik = it.filter { c -> c.isDigit() }.take(16) }, keyboardType = KeyboardType.Number, error = if (nik.isNotEmpty() && !Rules.isValidNik(nik)) "NIK harus 16 angka." else null)
+        Spacer(Modifier.height(12.dp))
+        FormField("Nama lengkap (sesuai e-KTP)", name, { name = it }, error = if (!Rules.isValidFullName(name)) "Masukkan nama lengkap." else null)
+        Spacer(Modifier.height(12.dp))
         FormField("Tanggal lahir", dobDigits, { dobDigits = it.filter { c -> c.isDigit() }.take(8) }, keyboardType = KeyboardType.Number, transformation = DateTransformation, error = if (dob.length == 10 && !dobValid) "Tanggal tidak valid atau usia di bawah 18 tahun." else null)
-        Spacer(Modifier.height(14.dp))
-        FormField("Alamat", address, { address = it }, singleLine = false)
+        Spacer(Modifier.height(12.dp))
+        FormField("Alamat sesuai e-KTP", address, { address = it }, singleLine = false)
     }
 }
 
@@ -574,25 +618,64 @@ private fun KycReviewPreview() = ReidigTheme { KycReviewScreen(previewSignup(), 
 @Composable
 fun KycLivenessIntroScreen(onBack: () -> Unit, onStart: () -> Unit) {
     FormScreen(
-        "Pemeriksaan wajah",
+        "Verifikasi wajah",
         onBack,
         step = 4 to STEPS,
-        bottom = { PrimaryButton("Mulai pindai wajah", onStart) },
+        bottom = {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                SecondaryButton("Sebelumnya", onBack, modifier = Modifier.weight(1f))
+                PrimaryButton("Selanjutnya", onStart, modifier = Modifier.weight(1f))
+            }
+        },
     ) {
-        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { FaceIllustration() }
-        Spacer(Modifier.height(18.dp))
-        Headline("Pindai wajah", "Butuh sekitar 10 detik.", centered = true)
-        Spacer(Modifier.height(18.dp))
-        listOf("Cari tempat yang cukup terang", "Lepas kacamata, topi, atau masker", "Jaga wajah tetap di dalam oval").forEachIndexed { i, tip ->
-            Row(
-                Modifier.fillMaxWidth().padding(bottom = 10.dp).cardDepth(Palette.Lavender, RoundedCornerShape(14.dp)).padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
+        Spacer(Modifier.height(12.dp))
+        // Concentric rings + 96dp purple squircle illustration matching 10 Liveness Intro prototype
+        Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(196.dp).clip(CircleShape).background(Palette.Primary50))
+            Canvas(Modifier.size(148.dp)) {
+                drawCircle(
+                    color = Palette.Primary200,
+                    style = Stroke(width = 2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 10f))),
+                )
+            }
+            Box(
+                Modifier.size(96.dp)
+                    .shadow(12.dp, RoundedCornerShape(28.dp), ambientColor = Palette.Primary, spotColor = Palette.Primary)
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(Palette.Primary),
+                contentAlignment = Alignment.Center,
             ) {
-                Box(Modifier.size(30.dp).clip(CircleShape).background(Palette.Primary), contentAlignment = Alignment.Center) {
-                    Text("${i + 1}", color = Color.White, fontWeight = FontWeight.Bold)
+                Icon(Icons.Outlined.CenterFocusStrong, null, tint = Palette.Gold, modifier = Modifier.size(48.dp))
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+        Headline(
+            "Verifikasi wajah",
+            "Kami perlu memastikan kamu adalah pemilik asli e-KTP yang didaftarkan.",
+            centered = true,
+            titleColor = Palette.Primary,
+        )
+        Spacer(Modifier.height(18.dp))
+        SurfaceCard {
+            val tips = listOf(
+                "Lepas kacamata hitam, masker, atau topi",
+                "Pastikan wajah mendapat cahaya merata",
+                "Ikuti instruksi gerakan (kedip / tengok)",
+            )
+            tips.forEachIndexed { i, tip ->
+                Row(
+                    Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(Modifier.size(28.dp).clip(CircleShape).background(Palette.Primary50), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Filled.Check, null, tint = Palette.Primary, modifier = Modifier.size(14.dp))
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Text(tip, fontSize = 13.sp, color = Palette.InkSecondary)
                 }
-                Spacer(Modifier.width(12.dp))
-                Text(tip, fontSize = 15.sp)
+                if (i < tips.lastIndex) {
+                    HorizontalDivider(color = Palette.Line.copy(alpha = 0.6f))
+                }
             }
         }
     }
@@ -603,34 +686,8 @@ fun KycLivenessIntroScreen(onBack: () -> Unit, onStart: () -> Unit) {
 private fun KycLivenessIntroPreview() = ReidigTheme { KycLivenessIntroScreen({}, {}) }
 
 @Composable
-private fun FaceIllustration() {
-    Canvas(Modifier.size(170.dp)) {
-        val center = Offset(size.width / 2, size.height / 2)
-        drawCircle(Palette.Ring, size.width / 2)
-        val faceW = size.width * 0.34f
-        val faceH = size.height * 0.42f
-        drawArc(Palette.Primary, 180f, 180f, true, Offset(center.x - faceW / 2, center.y - faceH * 0.62f), Size(faceW, faceH))
-        drawOval(Color(0xFFF0D9BF), Offset(center.x - faceW * 0.46f, center.y - faceH * 0.38f), Size(faceW * 0.92f, faceH * 0.98f))
-        val eye = 3.5.dp.toPx()
-        drawCircle(Palette.Primary, eye, Offset(center.x - faceW * 0.18f, center.y))
-        drawCircle(Palette.Primary, eye, Offset(center.x + faceW * 0.18f, center.y))
-        drawArc(Palette.Primary, 20f, 140f, false, Offset(center.x - faceW * 0.16f, center.y + faceH * 0.1f), Size(faceW * 0.32f, faceH * 0.2f), style = Stroke(2.5.dp.toPx(), cap = StrokeCap.Round))
-        drawOval(
-            Palette.Primary,
-            Offset(center.x - size.width * 0.27f, center.y - size.height * 0.36f),
-            Size(size.width * 0.54f, size.height * 0.72f),
-            style = Stroke(2.5.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(14f, 12f))),
-        )
-    }
-}
-
-/**
- * Kamera depan sungguhan, tetapi gerakan belum dideteksi: petunjuk berjalan mengikuti waktu dan tidak ada
- * gambar yang disimpan atau dikirim. Pemeriksaan liveness sungguhan menunggu SDK vendor KYC.
- */
-@Composable
 fun KycFaceScanScreen(onBack: () -> Unit, onVerified: () -> Unit) {
-    CameraPermissionGate("Pindai wajah", "Izinkan kamera untuk memindai wajah", onBack) {
+    CameraPermissionGate("Verifikasi wajah", "Izinkan kamera untuk memindai wajah", onBack) {
         FaceCamera(onBack, onVerified)
     }
 }
@@ -641,7 +698,7 @@ private fun KycFaceScanPreview() = ReidigTheme { KycFaceScanScreen({}, {}) }
 
 @Composable
 private fun FaceCamera(onBack: () -> Unit, onVerified: () -> Unit) {
-    val prompts = listOf("Posisikan wajah di dalam oval", "Putar kepala perlahan ke kiri", "Sekarang ke kanan", "Berkedip dua kali", "Selesai")
+    val prompts = listOf("Posisikan wajah di dalam bingkai", "Kedipkan mata perlahan", "Tahan sebentar...", "Wajah terverifikasi!")
     var index by remember { mutableIntStateOf(0) }
     var ready by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -650,31 +707,38 @@ private fun FaceCamera(onBack: () -> Unit, onVerified: () -> Unit) {
         onReady = { ready = true },
         onError = { error = "Kamera depan tidak bisa dibuka." },
     )
-    // Petunjuk baru berjalan setelah kamera benar-benar menyala.
     LaunchedEffect(ready) {
         if (!ready) return@LaunchedEffect
         while (index < prompts.lastIndex) {
-            delay(1800)
+            delay(1600)
             index++
         }
         delay(800)
         onVerified()
     }
     val done = index == prompts.lastIndex
-    CameraScaffold("Pindai wajah", onBack, error ?: prompts[index]) {
-        Box(Modifier.size(280.dp), contentAlignment = Alignment.Center) {
-            CameraSurface(previewView, Modifier.fillMaxSize().padding(horizontal = 34.dp).clip(RoundedCornerShape(50)))
+    CameraScaffold("Verifikasi wajah", onBack, error ?: prompts[index]) {
+        Box(Modifier.size(270.dp), contentAlignment = Alignment.Center) {
+            CameraSurface(previewView, Modifier.fillMaxSize().padding(horizontal = 30.dp).clip(RoundedCornerShape(50)))
             Canvas(Modifier.fillMaxSize()) {
                 val rect = Rect(Offset(size.width * 0.12f, 0f), Size(size.width * 0.76f, size.height))
                 drawOval(Color.White.copy(alpha = 0.25f), rect.topLeft, rect.size, style = Stroke(4.dp.toPx()))
-                drawArc(if (done) Palette.Mint else Palette.Gold, -90f, 360f * (index + 1) / prompts.size, false, rect.topLeft, rect.size, style = Stroke(5.dp.toPx(), cap = StrokeCap.Round))
+                drawArc(
+                    if (done) Palette.Mint else Palette.Gold,
+                    -90f,
+                    360f * (index + 1) / prompts.size,
+                    false,
+                    rect.topLeft,
+                    rect.size,
+                    style = Stroke(5.dp.toPx(), cap = StrokeCap.Round),
+                )
             }
             if (done) SuccessBadge()
         }
         Spacer(Modifier.weight(1f))
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            repeat(4) { i ->
-                Box(Modifier.width(40.dp).height(5.dp).clip(RoundedCornerShape(3.dp)).background(if (i < index) Palette.Gold else Color.White.copy(alpha = 0.25f)))
+            repeat(prompts.size) { i ->
+                Box(Modifier.width(40.dp).height(5.dp).clip(RoundedCornerShape(3.dp)).background(if (i <= index) Palette.Gold else Color.White.copy(alpha = 0.25f)))
             }
         }
     }
@@ -697,7 +761,7 @@ fun KycPinScreen(env: AppEnv, kyc: KycDraft, onBack: () -> Unit, onDone: () -> U
     }
 
     FormScreen(
-        "Amankan akun",
+        "Buat PIN",
         { if (confirming) { first = null; code = ""; error = null } else onBack() },
         step = 5 to STEPS,
         bottom = {
@@ -713,11 +777,26 @@ fun KycPinScreen(env: AppEnv, kyc: KycDraft, onBack: () -> Unit, onDone: () -> U
             )
         },
     ) {
-        Headline(if (confirming) "Ulangi PIN Anda" else "Buat PIN 6 angka", if (confirming) null else "Dipakai setiap kali bertransaksi.")
-        Spacer(Modifier.height(36.dp))
-        CodeDots(code.length, error = error != null)
-        Spacer(Modifier.height(18.dp))
-        error?.let { ErrorLine(it, Modifier.align(Alignment.CenterHorizontally)) }
+        Spacer(Modifier.height(8.dp))
+        Headline(
+            if (confirming) "Konfirmasi PIN" else "Buat 6 digit PIN",
+            if (confirming) "Masukkan ulang 6 digit PIN yang baru kamu buat." else "PIN digunakan untuk mengotorisasi setiap transaksi emas dan penarikan dana.",
+            titleColor = Palette.Primary,
+        )
+        Spacer(Modifier.height(28.dp))
+        CodeBoxes(code = code, masked = true, error = error != null)
+        Spacer(Modifier.height(14.dp))
+        if (error != null) {
+            ErrorLine(error!!, Modifier.align(Alignment.CenterHorizontally))
+        } else {
+            Text(
+                "Hindari tanggal lahir atau angka berulang (misal 111111).",
+                color = Palette.InkSoft,
+                fontSize = 12.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
 }
 
@@ -725,41 +804,60 @@ fun KycPinScreen(env: AppEnv, kyc: KycDraft, onBack: () -> Unit, onDone: () -> U
 @Composable
 private fun KycPinPreview() = ReidigTheme { KycPinScreen(rememberPreviewEnv(false), previewKyc(), {}, {}) }
 
+/** Layar 12 Selesai e-KYC sesuai desain prototipe Goldin v1. */
 @Composable
 fun KycVerifiedScreen(onDone: () -> Unit) {
-    Box(Modifier.fillMaxSize().background(NightGradient)) {
-        Canvas(Modifier.fillMaxSize()) { drawConfetti() }
-        Column(
-            Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Spacer(Modifier.weight(1f))
-            Box(contentAlignment = Alignment.TopEnd) {
-                GoldBarArt(200.dp, Modifier.padding(top = 18.dp, end = 18.dp))
-                Box(Modifier.size(62.dp).clip(CircleShape).background(Color.White), contentAlignment = Alignment.Center) {
-                    Box(Modifier.size(50.dp).clip(CircleShape).background(Palette.Mint), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Filled.Check, null, tint = Color.White, modifier = Modifier.size(30.dp))
+    Column(
+        Modifier.fillMaxSize().background(Palette.Paper).statusBarsPadding().navigationBarsPadding().padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Spacer(Modifier.weight(1f))
+        DoubleRingSuccessBadge(Icons.Outlined.Shield)
+        Spacer(Modifier.height(24.dp))
+        Text(
+            "Verifikasi berhasil!",
+            color = Palette.Primary,
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = 26.sp,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "Identitasmu sudah terverifikasi dan akun dilindungi PIN. Sekarang kamu bisa transaksi emas penuh.",
+            color = Palette.InkSecondary,
+            fontSize = 14.sp,
+            lineHeight = 21.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 12.dp),
+        )
+        Spacer(Modifier.height(24.dp))
+        HeroPurpleCard(shape = RoundedCornerShape(16.dp)) {
+            Column(Modifier.fillMaxWidth()) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Wallet ID", color = Palette.Primary200, fontSize = 12.sp)
+                    Box(
+                        Modifier.clip(RoundedCornerShape(50)).background(Palette.GoldSoft).padding(horizontal = 10.dp, vertical = 3.dp),
+                    ) {
+                        Text("Terenkripsi", color = Palette.GoldDeep, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "GLD-8829-4410-24K",
+                    color = Palette.Gold,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    fontFamily = FontFamily.Monospace,
+                    letterSpacing = 0.5.sp,
+                )
             }
-            Spacer(Modifier.height(28.dp))
-            Text("Verifikasi selesai", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 28.sp)
-            Spacer(Modifier.height(8.dp))
-            Text("Sekarang Anda bisa membeli emas.", color = Color.White.copy(alpha = 0.8f), textAlign = TextAlign.Center)
-            Spacer(Modifier.height(24.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                listOf("Identitas\nterverifikasi", "Wajah\ncocok", "PIN\naman").forEach { label ->
-                    Column(Modifier.weight(1f).darkCardDepth(shape = RoundedCornerShape(14.dp)).padding(12.dp)) {
-                        Icon(Icons.Filled.Check, null, tint = Palette.Mint, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.height(6.dp))
-                        Text(label, color = Color.White, fontSize = 14.sp, lineHeight = 19.sp)
-                    }
-                }
-            }
-            Spacer(Modifier.weight(1f))
-            LightButton("Beli emas", onDone)
-            Spacer(Modifier.height(12.dp))
         }
+        Spacer(Modifier.weight(1f))
+        PrimaryButton("Mulai transaksi emas", onDone)
     }
 }
 

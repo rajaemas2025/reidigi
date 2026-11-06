@@ -9,37 +9,71 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
-/** Warna dari REI Design System. */
+/** Token warna dari EmDig / Goldin Design System (tokens.json). */
 object Palette {
-    val Primary = Color(0xFF371F76)
-    val PrimaryPressed = Color(0xFF5436AA)
-    val Lavender = Color(0xFFF6F6FF)
-    val Ring = Color(0xFFEBE5F7)
-    val Focus = Color(0xFF5436AA)
-    val Night = Color(0xFF0F052C)
-    val NightSoft = Color(0xFF2A1F5C)
-    val Gold = Color(0xFFE0B553)
-    val GoldDeep = Color(0xFFA87A1F)
-    val GoldSoft = Color(0xFFFBF3DF)
-    val Ink = Color(0xFF0F052C)
-    val InkSoft = Color(0xFF737373)
-    val Line = Color(0xFFD4D4D4)
-    val FieldBorder = Color(0xFFA3A3A3)
-    val Disabled = Color(0xFFA3A3A3)
+    // Purple / Primary scale
+    val Primary50 = Color(0xFFF6F6FF)
+    val Primary100 = Color(0xFFECEAFE)
+    val Primary200 = Color(0xFFD7D4FC)
+    val Primary300 = Color(0xFFB3ABF2)
+    val Primary400 = Color(0xFF9280EE)
+    val Primary500 = Color(0xFF7255D7)
+    val Primary600 = Color(0xFF5436AA)
+    val Primary = Color(0xFF371F76)       // primary-700 (background-dark-purple)
+    val Primary800 = Color(0xFF271358)
+    val Primary900 = Color(0xFF17083B)
+    val Primary950 = Color(0xFF0F052C)
+
+    // Gold / Secondary scale
+    val Gold50 = Color(0xFFFBF7EC)
+    val Gold100 = Color(0xFFF6EFD9)
+    val Gold200 = Color(0xFFF0E3B8)
+    val Gold300 = Color(0xFFEAD48E)
+    val Gold = Color(0xFFE1C162)          // secondary-400 (gold accent on dark purple)
+    val Gold500 = Color(0xFFD4AF37)
+    val Gold600 = Color(0xFFB78E1A)
+    val GoldDeep = Color(0xFF966E0E)      // secondary-700
+    val GoldSoft = Color(0xFFFBF7EC)      // secondary-50
+
+    // Neutral & Text scale
+    val Ink = Color(0xFF0F052C)           // text-primary (purple-950)
+    val InkSecondary = Color(0xFF525252)  // text-secondary (neutral-600)
+    val InkSoft = Color(0xFF737373)       // text-tertiary (neutral-500)
+    val Neutral50 = Color(0xFFFAFAFA)
+    val Paper = Color(0xFFF5F5F5)         // background-default (neutral-100)
+    val Neutral200 = Color(0xFFE5E5E5)
+    val Line = Color(0xFFD4D4D4)          // border-subtle / border-input (neutral-300)
+    val FieldBorder = Color(0xFFD4D4D4)
+    val Disabled = Color(0xFFA3A3A3)      // neutral-400
     val DisabledText = Color(0xFFA3A3A3)
-    val Paper = Color(0xFFFAFAFA)
-    val Link = Color(0xFF2563EB)
-    val Good = Color(0xFF2E7D57)
-    val GoodSoft = Color(0xFFE5F5EC)
-    val Mint = Color(0xFF5FC79B)
-    val Critical = Color(0xFFDC2626)
-    val CriticalBorder = Color(0xFFEF4444)
-    val CriticalSoft = Color(0xFFFEE2E2)
-    val Warn = Color(0xFF93610A)
-    val WarnSoft = Color(0xFFFCF1D9)
+
+    // Semantic Status colors
+    val Good = Color(0xFF16A34A)          // success-600
+    val Good700 = Color(0xFF15803D)       // success-700
+    val GoodSoft = Color(0xFFF0FDF4)      // success-50
+    val Mint = Color(0xFF22C55E)          // success-500
+    val Critical = Color(0xFFDC2626)      // error-600
+    val CriticalBorder = Color(0xFFDC2626)
+    val CriticalSoft = Color(0xFFFEF2F2)  // error-50
+    val Warn = Color(0xFFA16207)          // warning-700
+    val Warn600 = Color(0xFFCA8A04)       // warning-600
+    val WarnSoft = Color(0xFFFEFCE8)      // warning-50
+    val WarnBorder = Color(0xFFFEF08A)    // warning-200
+    val Info50 = Color(0xFFEFF6FF)
+    val Info200 = Color(0xFFBFDBFE)
+    val Info500 = Color(0xFF3B82F6)
+    val Link = Color(0xFF371F76)
+
+    // Aliases for compatibility
+    val PrimaryPressed = Primary800
+    val Lavender = Primary50
+    val Ring = Primary100
+    val Focus = Primary600
+    val Night = Primary950
+    val NightSoft = Primary
 }
 
-val NightGradient = Brush.verticalGradient(listOf(Palette.NightSoft, Palette.Night))
+val NightGradient = Brush.verticalGradient(listOf(Palette.Primary, Palette.Primary800))
 
 @Composable
 fun ReidigTheme(content: @Composable () -> Unit) {
@@ -48,7 +82,7 @@ fun ReidigTheme(content: @Composable () -> Unit) {
             primary = Palette.Primary,
             onPrimary = Color.White,
             secondary = Palette.Gold,
-            background = Color.White,
+            background = Palette.Paper,
             surface = Color.White,
             onSurface = Palette.Ink,
             onBackground = Palette.Ink,

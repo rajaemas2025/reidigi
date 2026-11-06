@@ -1,19 +1,20 @@
 package com.reidig.app.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
@@ -76,14 +77,18 @@ private fun activeTab(route: String?): String? = when (route) {
     else -> route?.takeIf { current -> TABS.any { it.route == current } }
 }
 
-/** Navigasi bawah dari design system, dengan tombol Transaksi menonjol di tengah. */
+/** Navigasi bawah sesuai prototipe Goldin v1, dengan tombol Transaksi melayang di tengah. */
 @Composable
 private fun ReidigBottomBar(active: String, onSelect: (String) -> Unit) {
     Box(Modifier.fillMaxWidth().background(Palette.Paper)) {
         Row(
-            Modifier.fillMaxWidth().padding(top = 26.dp)
-                .shadow(10.dp, RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))
-                .background(Palette.Paper).navigationBarsPadding().padding(top = 8.dp, bottom = 8.dp),
+            Modifier.fillMaxWidth().padding(top = 24.dp)
+                .shadow(12.dp, RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                .background(Color.White)
+                .navigationBarsPadding()
+                .padding(top = 8.dp, bottom = 8.dp, start = 8.dp, end = 8.dp),
+            verticalAlignment = Alignment.Bottom,
         ) {
             TABS.forEach { tab ->
                 val selected = tab.route == active
@@ -95,20 +100,34 @@ private fun ReidigBottomBar(active: String, onSelect: (String) -> Unit) {
                     if (tab.route == "catalog") {
                         Spacer(Modifier.height(26.dp))
                     } else {
-                        Icon(tab.icon(), null, tint = tint, modifier = Modifier.size(26.dp))
+                        Icon(tab.icon(), null, tint = tint, modifier = Modifier.size(22.dp))
                     }
-                    Spacer(Modifier.height(2.dp))
-                    Text(tab.label, color = tint, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        tab.label,
+                        color = tint,
+                        fontSize = 11.sp,
+                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                    )
                 }
             }
         }
         val center = TABS.first { it.route == "catalog" }
+        val centerActive = active == "catalog"
         Box(
-            Modifier.align(Alignment.TopCenter).size(54.dp).shadow(4.dp, CircleShape).clip(CircleShape)
-                .background(Palette.Primary).clickable(role = Role.Tab, onClickLabel = center.label) { onSelect(center.route) },
+            Modifier.align(Alignment.TopCenter)
+                .size(56.dp)
+                .then(
+                    if (centerActive) Modifier.border(4.dp, Palette.Primary200, CircleShape)
+                    else Modifier
+                )
+                .shadow(8.dp, CircleShape, ambientColor = Palette.Primary, spotColor = Palette.Primary)
+                .clip(CircleShape)
+                .background(Palette.Primary)
+                .clickable(role = Role.Tab, onClickLabel = center.label) { onSelect(center.route) },
             contentAlignment = Alignment.Center,
         ) {
-            Icon(center.icon(), center.label, tint = Color.White, modifier = Modifier.size(30.dp))
+            Icon(center.icon(), center.label, tint = Palette.Primary50, modifier = Modifier.size(24.dp))
         }
     }
 }
@@ -170,19 +189,42 @@ fun ReidigApp(repo: MockRepository) {
                     )
                 }
                 composable("register/otp") {
-                    OtpScreen("Verifikasi email", 2 to 3, "Dikirim ke", signup.email, DEMO_EMAIL_OTP, { nav.popBackStack() }) {
+                    OtpScreen(
+                        title = "Verifikasi email",
+                        step = 2 to 3,
+                        sentVia = "Masukkan 6 digit kode yang kami kirim ke",
+                        target = signup.email,
+                        demoCode = DEMO_EMAIL_OTP,
+                        stepLabels = listOf("Buat akun", "Verifikasi", "Data diri"),
+                        onBack = { nav.popBackStack() },
+                    ) {
                         nav.navigate("register/profile") { popUpTo("register/email") }
                     }
                 }
                 composable("register/profile") {
-                    RegisterProfileScreen(env, signup, { nav.popBackStack() }, ::enterMain)
+                    RegisterProfileScreen(
+                        env,
+                        signup,
+                        onBack = { nav.popBackStack() },
+                        onDone = { nav.navigate("register/done") { popUpTo("welcome") } },
+                    )
+                }
+                composable("register/done") {
+                    RegisterDoneScreen(env, signup, onStart = ::enterMain)
                 }
 
                 composable("kyc/consent") { KycConsentScreen({ nav.popBackStack() }) { nav.navigate("kyc/phone") } }
                 composable("kyc/phone") { KycPhoneScreen(kyc, { nav.popBackStack() }) { nav.navigate("kyc/channel") } }
                 composable("kyc/channel") { KycChannelScreen(kyc, { nav.popBackStack() }) { nav.navigate("kyc/otp") } }
                 composable("kyc/otp") {
-                    OtpScreen("Verifikasi HP", 2 to 5, "Dikirim lewat ${kyc.channel} ke", "+62 ${kyc.phone}", DEMO_PHONE_OTP, { nav.popBackStack() }) {
+                    OtpScreen(
+                        title = "Verifikasi nomor HP",
+                        step = 2 to 5,
+                        sentVia = "Kode OTP dikirim lewat ${kyc.channel} ke",
+                        target = "+62 ${kyc.phone}",
+                        demoCode = DEMO_PHONE_OTP,
+                        onBack = { nav.popBackStack() },
+                    ) {
                         nav.navigate("kyc/scan") { popUpTo("kyc/phone") }
                     }
                 }
@@ -206,7 +248,7 @@ fun ReidigApp(repo: MockRepository) {
                         onSell = { nav.switchTab("sell-tab") },
                         onPrint = { nav.switchTab("print-tab") },
                         onInstallment = { requireVerified("installment") },
-                        onWithdraw = { nav.navigate("withdraw") },
+                        onWithdraw = { nav.switchTab("wallet") },
                         onVerify = { nav.navigate("kyc/consent") },
                         onPrices = { nav.navigate("prices") },
                     )
@@ -223,16 +265,16 @@ fun ReidigApp(repo: MockRepository) {
                 }
                 composable("buy-success") {
                     SuccessScreen(
-                        "Pembelian berhasil",
-                        "Token sudah terbit untuk keping ini.",
+                        "Pembelian berhasil!",
+                        "Emasmu sudah tersimpan di brankas dan tercatat dalam portofolio.",
                         "Lihat portofolio",
                         { nav.switchTab("portfolio") },
                     ) {
                         results.minted.forEach { token ->
                             SurfaceCard(Modifier.padding(bottom = 10.dp)) {
-                                Text(gram(state.sku(token.skuCode).weightMg), fontWeight = FontWeight.Bold)
-                                Text("Seri ${token.serial}", color = Palette.InkSoft, fontSize = 13.sp)
-                                TokenCodeText(token.code)
+                                SummaryRow("Keping emas", "${state.sku(token.skuCode).product} ${gram(state.sku(token.skuCode).weightMg)}", strong = true)
+                                SummaryRow("Nomor seri", token.serial)
+                                SummaryRow("Kode token", token.code)
                             }
                         }
                     }
@@ -295,7 +337,12 @@ fun ReidigApp(repo: MockRepository) {
                     }
                 }
                 composable("wallet") {
-                    WalletScreen(env, header = { WalletSwitch(0) { nav.switchTab("portfolio") } }) { nav.navigate("withdraw") }
+                    WalletScreen(
+                        env,
+                        header = { WalletSwitch(0) { nav.switchTab("portfolio") } },
+                        onPortfolio = { nav.switchTab("portfolio") },
+                        onWithdraw = { nav.navigate("withdraw") },
+                    )
                 }
                 composable("withdraw") {
                     WithdrawScreen(env, { nav.popBackStack() }) { nav.switchTab("wallet") }
@@ -310,7 +357,6 @@ fun ReidigApp(repo: MockRepository) {
                     results.installmentDraft?.let { draft ->
                         InstallmentAgreementScreen(env, draft, { nav.popBackStack() }) { application ->
                             results.application = application
-                            // Setelah diajukan, tombol kembali tidak lagi membuka perjanjian.
                             nav.navigate("installment-pay") { popUpTo("home") }
                         }
                     }
@@ -358,21 +404,21 @@ fun ReidigApp(repo: MockRepository) {
         }
         SnackbarHost(
             snackbar,
-            Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 80.dp).fillMaxWidth(),
+            Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 84.dp).fillMaxWidth(),
         ) { data ->
-            Snackbar(data, containerColor = Palette.Night, contentColor = Color.White, modifier = Modifier.padding(horizontal = 16.dp))
+            Snackbar(data, containerColor = Palette.Ink, contentColor = Color.White, modifier = Modifier.padding(horizontal = 16.dp))
         }
     }
 }
 
 @Composable
 private fun WalletSwitch(selected: Int, onSwitch: () -> Unit) {
-    SegmentSwitch(listOf("Saldo", "Emas"), selected) { onSwitch() }
+    SegmentSwitch(listOf("Dompet Kas & Emas", "Keping Token"), selected) { onSwitch() }
 }
 
 @Composable
 private fun TransactionSwitch(selected: Int, inset: Dp = 20.dp, onSwitch: () -> Unit) {
-    SegmentSwitch(listOf("Beli", "Jual"), selected, inset) { onSwitch() }
+    SegmentSwitch(listOf("Beli emas", "Jual emas"), selected, inset) { onSwitch() }
 }
 
 private class TransactionResults {

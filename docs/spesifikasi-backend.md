@@ -1,14 +1,20 @@
-# Spesifikasi Teknis Backend REIDIG
+# Spesifikasi Teknis Backend REIDIG (Raja Emas Indonesia Digital)
 
 ---
 
-## 1. Tech Stack & Struktur Proyek
+## 1. Tech Stack & Arsitektur Sistem
 
-Kita menggunakan arsitektur **modular monolith** agar batas antar-domain tetap bersih, mudah diuji, dan tidak membebani operasional di awal.
+REIDIG menggunakan pendekatan **Two-Tier Decoupled Architecture (Modular Core + Dedicated Installment Subsystem)** untuk menjaga integritas data kepemilikan emas tunai tetap terisolasi dari proses penagihan dan pembiayaan cicilan:
 
-- **Bahasa & Framework:** Python 3.12+, FastAPI, Pydantic v2
-- **Database & ORM:** PostgreSQL 16, SQlite, Alembic
-- **Cache & Task Queue:** Redis, Celery
+1. **Core REIDIG Service ("Database Beli")**:
+   - Mengelola master data SKU, inventori brankas emas fisik (Jakarta & cabang), penerbitan token kepemilikan sah nasabah, dompet rupiah, transaksi beli/jual tunai (*buyback*), dan pemenuhan cetak fisik.
+   - **Database:** PostgreSQL 16 (`reidig_core`).
+2. **Installment Service ("Database Cicil")**:
+   - Mengelola pengajuan pembiayaan cicilan nasabah, dokumen akad syariah (*Murabahah*), integrasi agregator pembiayaan pihak ketiga (BPRS / Koperasi Syariah), jadwal angsuran bulanan, dan penagihan berkala.
+   - **Database:** PostgreSQL 16 (`reidig_installment`).
+
+- **Bahasa & Framework:** Python 3.12+, FastAPI, Pydantic v2, SQLAlchemy 2.0, Alembic
+- **Cache & Task Queue:** Redis 7, Celery 5
 
 Struktur direktori utama di dalam `app/`:
 
@@ -16,17 +22,17 @@ Struktur direktori utama di dalam `app/`:
 app/
   catalog/        # Master data SKU dan lini produk
   pricing/        # Tarik harga, riwayat harga, dan penguncian harga (quote)
-  inventory/      # Manajemen keping fisik, penerimaan barang, QC, opname, karantina
-  tokens/         # Siklus hidup token kepemilikan dan riwayat mutasinya
-  orders/         # Transaksi jual-beli emas
+  inventory/      # Manajemen keping fisik brankas, penerimaan, QC, opname, jaminan cicilan
+  tokens/         # Siklus hidup token kepemilikan sah dan rantai audit hash
+  orders/         # Transaksi jual-beli emas tunai
   payments/       # Integrasi payment gateway (inbound) dan pencairan dana (outbound)
   wallet/         # Saldo pengguna, top-up, dan penarikan dana
-  fulfillment/    # Permintaan cetak fisik, pengiriman kurir, dan ambil di cabang
-  financing/      # Integrasi cicilan emas dengan mitra pembiayaan
+  fulfillment/    # Permintaan cetak fisik, pengiriman ekspedisi, dan ambil di cabang
+  financing/      # Integrasi pembiayaan cicilan dengan agregator pihak ketiga
   identity/       # Profil pengguna, KYC, PIN, dan rekening bank
   ledger/         # Pembukuan akuntansi double-entry internal
-  admin/          # Role-Based Access Control (RBAC) dan log audit
-  reconciliation/ # Job pencocokan stok, saldo, dan transaksi eksternal
+  admin/          # Role-Based Access Control (RBAC) dan log audit operasional
+  reconciliation/ # Job pencocokan stok fisik, saldo ledger, dan transaksi eksternal
 ```
 
 ### Konvensi Data (Wajib Dipatuhi)
@@ -39,93 +45,81 @@ Untuk menghindari *bug* pembulatan desimal (*floating-point error*), seluruh nil
 
 ## 2. Konsep Inti Domain
 
-Sebelum masuk ke alur kode, pastikan kita memiliki pemahaman yang sama tentang lima entitas utama ini:
-
 | Konsep | Penjelasan |
 |---|---|
-| **SKU** | Katalog jenis produk berdasarkan berat dan lini merek. Dikelola oleh tim gudang melalui dashboard. |
-| **Unit** | Keping emas fisik nyata dengan nomor seri (*serial number*) unik. Seluruh stok emas digital disimpan terpusat di gudang Jakarta (terpisah dari stok toko/website), dan baru dikirim ke cabang jika pengguna meminta cetak fisik. |
-| **Token** | Bukti kepemilikan digital yang mengunci tepat **satu Unit fisik**. Token terbit saat pembelian lunas, dan mati secara permanen saat dijual kembali atau dicetak fisik (**tidak pernah dipakai ulang**). |
-| **Quote** | Harga beli atau jual yang dikunci sementara (memiliki batas waktu/TTL) sebagai acuan satu transaksi. |
-| **Saldo** | Dana Rupiah milik pengguna di dalam aplikasi. Nilai sebenarnya selalu dihitung dari mutasi *ledger*. |
+| **SKU** | Katalog jenis produk berdasarkan berat dan lini merek. Dikelola oleh tim gudang melalui dashboard operasional. |
+| **Unit Fisik** | Keping emas fisik nyata dengan nomor seri unik (*serial number*). Disimpan terpusat di brankas pusat Jakarta dan dilindungi sistem audit ganda. |
+| **Token Digital** | Bukti kepemilikan digital sah di **Database Beli** yang mengunci tepat **satu Unit fisik**. Token terbit saat pembelian tunai lunas atau saat kontrak cicilan dinyatakan lunas 100% oleh agregator pembiayaan. |
+| **Keping Jaminan Cicilan** | Keping fisik emas di brankas yang statusnya terkunci (`LOCKED_INSTALLMENT`) karena telah dilunasi di awal oleh mitra pembiayaan, menunggu nasabah menyelesaikan seluruh angsuran di **Database Cicil**. |
+| **Agregator & Lembaga Syariah** | Pihak ketiga penyedia dana pembiayaan (BPRS / Koperasi Simpan Pinjam Syariah) yang bekerjasama melalui agregator resmi. Identitas lembaga ini dicantumkan secara legal pada dokumen akad digital, sementara menu aplikasi tetap berkonsep *white-label*. |
+| **Quote** | Harga beli atau jual yang dikunci sementara (memiliki batas waktu/TTL) sebagai acuan transaksi. |
+| **Saldo Dompet** | Dana Rupiah milik pengguna di dalam aplikasi yang selalu dihitung dari mutasi *ledger* double-entry. |
 
 **Format ID Token:**  
-`RET-<kode SKU>-<10 karakter acak Crockford Base32><1 check digit>`  
-*(Contoh: `RET-G001-7K3M9QXT4PZ`)*  
-Bagian acak wajib di-generate menggunakan CSPRNG. Catatan penting: ID token ini hanya pengenal publik, **bukan kredensial akses**. Setiap aksi terhadap token tetap wajib memvalidasi kepemilikan `user_id` di sisi server.
+`RET-<kode SKU>-<10 karakter acak Crockford Base32><1 check digit Luhn mod 32>`  
+*(Contoh: `RET-LMRE1G-7K3M9QXT4P2`)*
 
 ---
 
 ## 3. Aturan Emas / Invarian Sistem (Wajib Diuji)
 
-Sepuluh aturan di bawah ini adalah fondasi integritas sistem kita. Semuanya harus dijaga lewat *database constraint* dan diuji secara otomatis:
-
-1. **Satu Unit, Satu Token Aktif:** Satu keping unit fisik hanya boleh memiliki maksimal satu token yang masih berjalan (dijaga ketat dengan *partial unique index* di database).
-2. **Keterkaitan 1-ke-1:** Setiap token aktif wajib menunjuk ke tepat satu unit fisik yang sedang dikunci.
-3. **Kemurnian Stok Tersedia:** Unit berstatus `AVAILABLE` tidak boleh terikat pada token aktif mana pun.
-4. **Keseimbangan Stok & Token:** Jumlah token aktif pada suatu SKU harus selalu sama persis dengan jumlah unit berstatus `ALLOCATED`, `PICKING`, `SHIPPED`, `READY_PICKUP`, dan `QUARANTINE` (yang masih terikat token) pada SKU tersebut.
-5. **Tanpa Stok Fiktif:** Sistem dilarang menjual stok kosong. Unit baru bisa berstatus `AVAILABLE` setelah fisik barang diterima gudang dan lolos QC.
-6. **Imutabilitas Status Akhir:** Token yang sudah mencapai status final (`RETURNED`, `PRINTED`, `CANCELLED`) tidak bisa diubah lagi ke status apa pun.
-7. **Jejak Audit Utuh:** Setiap perubahan status pada Unit maupun Token wajib menghasilkan satu baris *event log* baru yang bersifat *append-only*.
-8. **Keseimbangan Akuntansi:** Setiap transaksi di *ledger* harus selalu seimbang (`Total Debit = Total Kredit`).
-9. **Anti Saldo Minus:** Saldo tersedia (*available balance*) milik pengguna tidak boleh pernah bernilai negatif.
-10. **Kecukupan Dana Pengguna:** Total seluruh saldo pengguna di aplikasi harus sama dengan saldo akun kewajiban (*liability*) di *ledger*, dan wajib ter-cover penuh oleh uang nyata di rekening penampungan dana pengguna.
-
-**Penanganan Pelanggaran (Circuit Breaker):**  
-Jika job rekonsiliasi menemukan pelanggaran invarian, sistem harus langsung mengirim *alert* darurat. Pelanggaran pada **poin 1–3** harus otomatis menghentikan perdagangan (*halt*) untuk SKU terkait, sedangkan pelanggaran pada **poin 9–10** harus otomatis membekukan fitur penarikan dana.
+1. **Satu Unit, Maksimal Satu Hak Aktif:** Satu keping fisik hanya boleh memiliki maksimal satu token kepemilikan aktif atau satu jaminan cicilan berjalan (dijaga dengan *partial unique index* di database).
+2. **Keterkaitan 1-ke-1:** Setiap token aktif wajib menunjuk ke tepat satu keping fisik nyata yang sedang dikunci di brankas.
+3. **Kemurnian Stok Tersedia:** Unit berstatus `AVAILABLE` tidak boleh terikat pada token aktif maupun kontrak cicilan mana pun.
+4. **Keseimbangan Stok & Kepemilikan:** Jumlah keping berstatus `ALLOCATED` + `PICKING` + `SHIPPED` + `READY_PICKUP` + `LOCKED_INSTALLMENT` harus selalu sama persis dengan total hak digital dan jaminan cicilan aktif.
+5. **Tanpa Stok Fiktif:** Sistem dilarang menjual stok kosong. Unit baru bisa dijual atau dicicil setelah fisik barang diterima gudang dan lolos verifikasi mutu (QC).
+6. **Imutabilitas Status Akhir:** Token yang sudah mencapai status final (`RETURNED`, `PRINTED`, `CANCELLED`) tidak bisa diaktifkan kembali.
+7. **Jejak Audit Utuh:** Setiap mutasi status fisik maupun token wajib menghasilkan *event log* yang bersifat *append-only* dengan rantai hash (*audit trail*).
+8. **Keseimbangan Akuntansi:** Setiap jurnal pembukuan di *ledger* harus selalu berimbang (`Total Debit = Total Kredit`).
+9. **Anti Saldo Minus:** Saldo tersedia (*available balance*) pengguna tidak boleh pernah bernilai negatif (`CHECK (available >= 0)`).
+10. **Kecukupan Dana Pengguna:** Total seluruh saldo pengguna di aplikasi wajib tertutup penuh oleh dana nyata di rekening penampungan (*escrow bank*).
 
 ---
 
 ## 4. Siklus Status (State Machine)
 
-### Siklus Hidup Token
+### 4.1 Siklus Hidup Token & Kepemilikan (Database Beli)
 
 ```mermaid
 stateDiagram-v2
-  [*] --> ACTIVE: Pembayaran lunas
-  [*] --> LOCKED_INSTALLMENT: DP cicilan lunas
-  LOCKED_INSTALLMENT --> ACTIVE: Cicilan lunas
-  LOCKED_INSTALLMENT --> CANCELLED: Wanprestasi / gagal bayar
-  ACTIVE --> RETURNED: Dijual kembali (dana masuk saldo)
-  ACTIVE --> PRINT_PENDING: Pengguna ajukan cetak fisik
+  [*] --> ACTIVE: Pembelian tunai lunas
+  [*] --> ACTIVE: Cicilan lunas 100% (Migrasi dari DB Cicil)
+  ACTIVE --> RETURNED: Dijual kembali / Buyback (dana cair ke saldo)
+  ACTIVE --> PRINT_PENDING: Nasabah ajukan cetak fisik
   PRINT_PENDING --> ACTIVE: Cetak dibatalkan (sebelum picking)
-  PRINT_PENDING --> PRINTED: Emas fisik diterima pengguna
+  PRINT_PENDING --> PRINTED: Emas fisik diterima nasabah
   RETURNED --> [*]
   PRINTED --> [*]
-  CANCELLED --> [*]
 ```
 
-### Siklus Hidup Unit Fisik
+### 4.2 Siklus Hidup Unit Fisik di Brankas
 
 ```mermaid
 stateDiagram-v2
-  [*] --> INBOUND_QC: Barang masuk gudang
-  INBOUND_QC --> AVAILABLE: Lolos QC
-  INBOUND_QC --> QUARANTINE: Gagal QC
-  AVAILABLE --> RESERVED: Order dibuat (menunggu bayar)
-  RESERVED --> AVAILABLE: Waktu bayar habis
-  RESERVED --> ALLOCATED: Pembayaran lunas (terikat token)
+  [*] --> INBOUND_QC: Barang masuk brankas
+  INBOUND_QC --> AVAILABLE: Lolos uji QC
+  INBOUND_QC --> QUARANTINE: Gagal uji QC
+  AVAILABLE --> RESERVED: Menunggu pembayaran (15 menit)
+  RESERVED --> AVAILABLE: Waktu bayar habis / dibatalkan
+  RESERVED --> ALLOCATED: Beli tunai lunas (terikat token aktif)
+  RESERVED --> LOCKED_INSTALLMENT: Pengajuan cicil disetujui & Agregator lunasi 100% di awal
+  LOCKED_INSTALLMENT --> ALLOCATED: Angsuran nasabah LUNAS 100% (Token aktif terbit)
+  LOCKED_INSTALLMENT --> AVAILABLE: Wanprestasi / akad cicil batal (sesuai klausul mitra)
   ALLOCATED --> AVAILABLE: Token dijual kembali (RETURNED)
-  ALLOCATED --> PICKING: Proses ambil barang untuk cetak
+  ALLOCATED --> PICKING: Pengambilan barang untuk cetak
   PICKING --> ALLOCATED: Cetak dibatalkan
-  PICKING --> SHIPPED: Dikirim kurir / ke cabang
-  SHIPPED --> READY_PICKUP: Tiba di cabang
-  READY_PICKUP --> DELIVERED: Diambil pengguna di cabang
-  SHIPPED --> DELIVERED: Diterima pengguna via kurir
-  AVAILABLE --> QUARANTINE: Temuan selisih/rusak saat opname
-  ALLOCATED --> QUARANTINE: Temuan selisih/rusak saat opname
-  QUARANTINE --> AVAILABLE: Masalah selesai & disetujui
-  QUARANTINE --> WRITTEN_OFF: Dihapusbukukan
+  PICKING --> SHIPPED: Dikirim via ekspedisi / menuju cabang
+  SHIPPED --> READY_PICKUP: Tiba di cabang resmi
+  READY_PICKUP --> DELIVERED: Diserahkan ke nasabah di cabang
+  SHIPPED --> DELIVERED: Diterima nasabah via kurir
   DELIVERED --> [*]
-  WRITTEN_OFF --> [*]
 ```
-
-> **Catatan Penting soal Karantina:**  
-> Jika sebuah unit fisik terpaksa masuk status `QUARANTINE` padahal sedang terikat ke token milik pengguna (`ALLOCATED`), sistem harus otomatis menukarnya (*swap*) dengan unit `AVAILABLE` lain dari SKU yang sama dan mencatat pertukarannya di tabel `token_unit_history`. Masalah operasional di gudang tidak boleh merugikan atau menghambat transaksi pengguna.
 
 ---
 
-## 5. Desain Skema Database Inti
+## 5. Desain Skema Database
+
+### 5.1 Skema Database Beli / Core REIDIG (`reidig_core`)
 
 ```sql
 CREATE TABLE skus (
@@ -140,8 +134,9 @@ CREATE TABLE units (
   id BIGSERIAL PRIMARY KEY,
   sku_id BIGINT NOT NULL REFERENCES skus(id),
   serial_number TEXT NOT NULL,
-  location_id BIGINT NOT NULL REFERENCES locations(id), -- gudang pusat atau cabang
+  location_id BIGINT NOT NULL REFERENCES locations(id),
   bin_location TEXT,
+  -- Status: INBOUND_QC, AVAILABLE, RESERVED, ALLOCATED, LOCKED_INSTALLMENT, PICKING, SHIPPED, READY_PICKUP, DELIVERED, QUARANTINE, WRITTEN_OFF
   status TEXT NOT NULL,
   version INT NOT NULL DEFAULT 0,
   UNIQUE (sku_id, serial_number)
@@ -154,146 +149,181 @@ CREATE TABLE tokens (
   user_id BIGINT NOT NULL REFERENCES users(id),
   unit_id BIGINT NOT NULL REFERENCES units(id),
   sku_id BIGINT NOT NULL REFERENCES skus(id),
-  status TEXT NOT NULL,
+  status TEXT NOT NULL, -- ACTIVE, PRINT_PENDING, RETURNED, PRINTED, CANCELLED
   acquired_price BIGINT NOT NULL,
-  origin_order_id BIGINT NOT NULL,
+  origin_type TEXT NOT NULL, -- 'ORDER', 'INSTALLMENT_COMPLETED'
+  origin_id BIGINT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   closed_at TIMESTAMPTZ
 );
--- Penjaga utama Invarian #1: satu unit hanya boleh punya satu token aktif
 CREATE UNIQUE INDEX uq_unit_one_open_token ON tokens (unit_id)
   WHERE status NOT IN ('RETURNED', 'PRINTED', 'CANCELLED');
 
-CREATE TABLE token_events (
+CREATE TABLE installment_collateral_locks (
   id BIGSERIAL PRIMARY KEY,
-  token_id UUID NOT NULL REFERENCES tokens(id),
-  from_status TEXT,
-  to_status TEXT NOT NULL,
-  actor_type TEXT NOT NULL,
-  actor_id TEXT,
-  reason TEXT,
-  prev_hash BYTEA,
-  hash BYTEA NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
--- Harga disimpan per SKU karena harga per gram tiap pecahan berbeda
-CREATE TABLE sku_prices (
-  id BIGSERIAL PRIMARY KEY,
+  contract_ref VARCHAR(32) UNIQUE NOT NULL,
+  unit_id BIGINT NOT NULL REFERENCES units(id),
   sku_id BIGINT NOT NULL REFERENCES skus(id),
-  buy_price BIGINT NOT NULL CHECK (buy_price > 0),
-  buyback_price BIGINT NOT NULL CHECK (buyback_price > 0),
-  source TEXT NOT NULL,
-  source_updated_at TIMESTAMPTZ NOT NULL,
-  fetched_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CHECK (buyback_price < buy_price)
-);
-
-CREATE TABLE wallets (
-  user_id BIGINT PRIMARY KEY REFERENCES users(id),
-  available BIGINT NOT NULL DEFAULT 0 CHECK (available >= 0),
-  held BIGINT NOT NULL DEFAULT 0 CHECK (held >= 0),
-  version INT NOT NULL DEFAULT 0
-);
-
-CREATE TABLE wallet_entries (
-  id BIGSERIAL PRIMARY KEY,
-  user_id BIGINT NOT NULL REFERENCES wallets(user_id),
-  type TEXT NOT NULL, -- SALE_CREDIT, PURCHASE_DEBIT, TOPUP, WITHDRAW_HOLD, WITHDRAW_RELEASE, WITHDRAW_SETTLE, REFUND
-  amount BIGINT NOT NULL,
-  reference_type TEXT NOT NULL,
-  reference_id TEXT NOT NULL,
-  withdrawable_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (type, reference_type, reference_id)
+  user_id BIGINT NOT NULL REFERENCES users(id),
+  aggregator_code VARCHAR(32) NOT NULL,
+  upfront_payment_ref VARCHAR(64) NOT NULL,
+  status VARCHAR(24) NOT NULL, -- 'LOCKED', 'RELEASED_TO_BUY_DB', 'LIQUIDATED'
+  locked_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  released_at TIMESTAMPTZ
 );
 ```
 
-Tabel `wallets` berfungsi sebagai *read-model* cepat untuk menampilkan saldo. Sumber kebenaran (*source of truth*) yang sesungguhnya tetap berada di `wallet_entries` dan *ledger*, yang terus dicocokkan oleh job rekonsiliasi.
+### 5.2 Skema Database Cicil (`reidig_installment`)
 
-### Daftar Tabel Pendukung Lainnya
+```sql
+CREATE TABLE financing_institutions (
+  id SERIAL PRIMARY KEY,
+  code VARCHAR(32) UNIQUE NOT NULL,             -- 'BPRS_HIK', 'KSPPS_BMT'
+  legal_name VARCHAR(128) NOT NULL,             -- 'PT BPRS Harta Insan Karimah'
+  license_number VARCHAR(64) NOT NULL,          -- Nomor izin OJK / Kemenkop
+  aggregator_partner VARCHAR(64) NOT NULL,      -- Nama agregator
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
-| Domain | Nama Tabel |
-|---|---|
-| **Harga** | `quotes`, `price_source_runs` |
-| **Transaksi** | `orders`, `order_items`, `payments`, `disbursements` |
-| **Saldo** | `topups`, `withdrawals` |
-| **Stok & Gudang** | `locations`, `unit_events`, `token_unit_history`, `inbound_batches` |
-| **Stock Opname** | `stock_counts`, `stock_count_scans`, `stock_count_variances` |
-| **Cetak Fisik** | `print_orders`, `print_order_items`, `shipments` |
-| **Cicilan** | `financing_applications`, `financing_contracts`, `financing_events` |
-| **Keuangan** | `ledger_accounts`, `ledger_entries`, `tax_rules` |
-| **Infrastruktur** | `idempotency_keys`, `outbox_events`, `audit_logs` |
-| **Identitas & Admin** | `users`, `kyc_records`, `bank_accounts`, `devices`, `admin_users`, `roles` |
+CREATE TABLE installment_agreement_templates (
+  id SERIAL PRIMARY KEY,
+  version VARCHAR(32) UNIQUE NOT NULL,
+  institution_id INT REFERENCES financing_institutions(id),
+  title VARCHAR(128) NOT NULL,                  -- 'Akad Pembiayaan Murabahah Emas'
+  body_markdown TEXT NOT NULL,
+  content_hash VARCHAR(64) NOT NULL,
+  is_current BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
-**Keamanan Level Database:**  
-Tabel `token_events`, `unit_events`, `wallet_entries`, `ledger_entries`, dan `audit_logs` bersifat mutlak *append-only*. Cabut (*revoke*) izin `UPDATE` dan `DELETE` pada tabel-tabel tersebut dari *database role* yang dipakai oleh aplikasi.
+CREATE TABLE installment_applications (
+  id BIGSERIAL PRIMARY KEY,
+  application_ref VARCHAR(32) UNIQUE NOT NULL,
+  core_user_id BIGINT NOT NULL,
+  sku_code VARCHAR(32) NOT NULL,
+  weight_mg INT NOT NULL,
+  gold_cash_price BIGINT NOT NULL,
+  down_payment BIGINT DEFAULT 0,
+  principal_financed BIGINT NOT NULL,
+  tenor_months INT NOT NULL,
+  monthly_installment BIGINT NOT NULL,
+  status VARCHAR(24) NOT NULL,                  -- 'PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'CANCELLED'
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE installment_contracts (
+  id BIGSERIAL PRIMARY KEY,
+  contract_ref VARCHAR(32) UNIQUE NOT NULL,     -- 'CTR-20261105-001'
+  application_id BIGINT UNIQUE REFERENCES installment_applications(id),
+  core_user_id BIGINT NOT NULL,
+  institution_id INT REFERENCES financing_institutions(id),
+  locked_unit_serial VARCHAR(64) NOT NULL,
+  total_months INT NOT NULL,
+  paid_months INT DEFAULT 0,
+  status VARCHAR(24) NOT NULL DEFAULT 'ACTIVE', -- 'ACTIVE', 'PAID_OFF', 'TRANSFERRED', 'DEFAULTED'
+  full_settlement_date TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE installment_schedules (
+  id BIGSERIAL PRIMARY KEY,
+  contract_id BIGINT REFERENCES installment_contracts(id),
+  installment_no INT NOT NULL,
+  due_date DATE NOT NULL,
+  amount BIGINT NOT NULL,
+  status VARCHAR(16) NOT NULL DEFAULT 'UNPAID', -- 'UNPAID', 'PAID', 'OVERDUE'
+  paid_at TIMESTAMPTZ,
+  payment_reference VARCHAR(64)
+);
+```
 
 ---
 
 ## 6. Alur Bisnis Utama
 
-### 6.1 Pembelian Emas (Buy)
+### 6.1 Pembelian Emas Tunai (Buy)
+1. Klien memanggil `POST /v1/quotes` untuk mengunci harga acuan (TTL 60 detik).
+2. Klien memanggil `POST /v1/orders/buy`. Dalam **satu transaksi database**:
+   - Kunci unit fisik `AVAILABLE` dengan `FOR UPDATE SKIP LOCKED`.
+   - Potong saldo atau terbitkan invoice payment gateway (15 menit).
+   - Setelah lunas, unit menjadi `ALLOCATED` dan token digital kepemilikan sah (`ACTIVE`) diterbitkan.
 
-1. Klien memanggil `POST /v1/quotes` untuk mengunci harga sementara dengan masa berlaku (TTL) 60 detik (bisa diatur lewat konfigurasi).
-2. Klien memanggil `POST /v1/orders/buy`. Di dalam **satu transaksi database**, lakukan langkah berikut:
-   - Validasi apakah *quote* masih berlaku, status KYC pengguna, dan limit transaksi.
-   - Kunci keping stok yang tersedia dan ubah statusnya menjadi `RESERVED` tanpa membuat antrean transaksi lain macet:
-     ```sql
-     SELECT id FROM units
-     WHERE sku_id = :sku AND status = 'AVAILABLE'
-     ORDER BY id LIMIT :qty
-     FOR UPDATE SKIP LOCKED;
-     ```
-   - Jika jumlah baris unit yang berhasil dikunci kurang dari `qty` yang diminta, langsung batalkan (*rollback*) seluruh transaksi dan kembalikan error `409 INSUFFICIENT_STOCK`.
-   - **Jika bayar pakai Saldo:** langsung potong saldo, terbitkan token `ACTIVE`, ubah unit jadi `ALLOCATED`, dan selesaikan order dalam transaksi database yang sama.
-   - **Jika bayar lewat Payment Gateway:** simpan order dengan status `PENDING_PAYMENT` dan beri batas waktu bayar 15 menit.
-3. Saat menerima *callback* dari iFortepay: verifikasi *signature* dan kecocokan nominal pembayaran. Jika valid, dalam satu transaksi database ubah order menjadi `PAID`, unit menjadi `ALLOCATED`, terbitkan token `ACTIVE`, dan catat jurnal *ledger*.
-4. *Background worker* akan menyapu order yang lewat batas waktu bayar dan mengembalikan status unit dari `RESERVED` ke `AVAILABLE`.
+### 6.2 Penjualan Emas Tunai / Buyback (Sell)
+1. Klien meminta quote harga jual.
+2. Memanggil `POST /v1/orders/sell` dengan otorisasi PIN.
+3. Kunci token, ubah status menjadi `RETURNED`, unit fisik kembali `AVAILABLE`, dan dana hasil penjualan masuk ke saldo dompet pengguna secara instan dan atomik.
 
-> **Kasus Pembayaran Terlambat (Paid After Expiry):**  
-> Jika uang baru masuk dari payment gateway setelah order dinyatakan kedaluwarsa, **jangan pernah** menerbitkan token dengan harga lama. Tandai order sebagai `PAID_AFTER_EXPIRY` dan masukkan dana pengguna ke Saldo sebagai *refund*.
+### 6.2a Manajemen Saldo & Penarikan Dana (Withdrawal)
+1. Klien memanggil `POST /v1/wallet/withdrawals` dengan otorisasi PIN.
+2. Dalam satu transaksi: pastikan saldo mencukupi, pindahkan saldo dari `available` ke `held` (*lock for withdrawal*), dan buat record penarikan dengan status `PROCESSING`.
+3. Instruksi transfer dikirim ke bank rekanan / disbursement gateway.
+4. Jika transfer berhasil: potong saldo `held` dan ubah status menjadi `SUCCESS`.
+5. Jika transfer gagal: kembalikan saldo `held` ke `available` dan tandai `FAILED`.
+6. Jika status tidak jelas (`UNKNOWN`): dana tetap ditahan di `held` hingga staf Finance melakukan verifikasi mutasi rekening koran bank.
 
-### 6.2 Penjualan Emas / Buyback (Sell)
+### 6.3 Cicilan Emas Melalui Agregator & Lembaga Syariah (BPRS / Koperasi Syariah)
 
-1. Klien meminta *quote* sisi `SELL` (TTL 60 detik).
-2. Klien memanggil `POST /v1/orders/sell` dengan menyertakan otorisasi PIN. Dalam **satu transaksi database**:
-   - Kunci baris data dengan `FOR UPDATE`, validasi kepemilikan token, pastikan statusnya `ACTIVE`, dan pastikan sudah melewati masa tahan (*holding period*).
-   - Ubah status token menjadi `RETURNED`, kembalikan status unit fisik menjadi `AVAILABLE`, tambahkan dana ke saldo pengguna beserta pencatatan *ledger*, dan potong pajak (jika berlaku).
+Fitur cicil dirancang dengan prinsip **kemitraan syariah, settlement penuh di muka, dan white-label UI**:
 
-Karena dana hasil jual langsung masuk ke Saldo internal aplikasi, transaksi *buyback* bisa selesai secara instan dan atomik tanpa perlu menunggu proses transfer bank.
+```mermaid
+sequenceDiagram
+  autonumber
+  actor User as Nasabah
+  participant App as Mobile App
+  participant InstEngine as Layanan Cicil (DB Cicil)
+  participant Core as Core REIDIG (DB Beli)
+  participant Aggregator as Agregator (BPRS/Koperasi)
+  participant Escrow as Rekening REIDIG
 
-**Pencegahan Deadlock & Fraud:**  
-- Saat mengunci baris di database, **patuhi urutan penguncian ini secara konsisten**: kunci `units` lebih dulu, baru `tokens`, lalu `wallets`.
-- Terapkan **masa tahan (*holding period*)** antara waktu beli dan waktu jual (default awal 24 jam, bisa dikonfigurasi) untuk mencegah penyalahgunaan transaksi cepat dan pencucian uang.
+  User->>App: Pilih SKU emas & tenor cicilan (Menu Cicil Emas)
+  App->>InstEngine: Permintaan simulasi angsuran & draf akad
+  InstEngine-->>App: Draf Akad Murabahah (Mencantumkan nama BPRS/Koperasi)
+  User->>App: Setujui & tanda tangan digital akad
+  App->>InstEngine: Submit pengajuan cicilan
+  InstEngine->>Aggregator: Teruskan pengajuan & akad
+  Aggregator-->>InstEngine: Pengajuan disetujui
+  Aggregator->>Escrow: Bayar lunas 100% harga emas di muka
+  Escrow-->>Core: Konfirmasi dana masuk B2B
+  InstEngine->>Core: Kunci unit fisik di brankas (LOCKED_INSTALLMENT)
+  Core-->>InstEngine: Unit fisik terkunci jaminan (Serial tercatat)
+  loop Setiap Bulan
+    User->>Aggregator: Bayar angsuran bulanan
+    Aggregator->>InstEngine: Webhook: Angsuran diterima
+  end
+  Aggregator->>InstEngine: Webhook: Cicilan LUNAS 100% (PAID_OFF)
+  InstEngine->>Core: Release Jaminan -> Terbitkan Token Hak Milik
+  Core->>Core: Terbitkan Token ACTIVE di Portofolio Nasabah (DB Beli)
+  Core-->>InstEngine: Konfirmasi Token Terbit
+  InstEngine-->>App: Notifikasi: "Selamat! Emas Anda lunas dan aktif di portofolio"
+```
 
-### 6.2a Manajemen Saldo & Penarikan Dana (Withdraw)
+1. **Tampilan Menu (*White-Label UI*)**:
+   - Menu di aplikasi mobile tetap bertuliskan **"Cicil Emas"** dengan tampilan bersih dan elegan tanpa logo bank pihak ketiga.
+2. **Akad Pembiayaan Murabahah (*Agreement*)**:
+   - Kemitraan lembaga keuangan syariah mitra (**PT BPRS / Koperasi Simpan Pinjam Syariah**) dan agregator resmi **hanya dicantumkan pada lembar dokumen akad digital**.
+   - Nasabah menyetujui akad pembiayaan jual-beli pesanan (*Murabahah*) secara sadar dan sah.
+3. **Pelunasan Penuh di Muka oleh Agregator (*100% Upfront Settlement*)**:
+   - Saat pengajuan disetujui, pihak ketiga/agregator melunasi harga emas fisik 100% langsung ke rekening penampungan REIDIG.
+   - REIDIG menerima kas penuh sejak hari pertama.
+4. **Jaminan Fisik di Brankas**:
+   - Keping fisik emas di brankas REIDIG di-lock dengan status **`LOCKED_INSTALLMENT`**.
+   - Keping ini dijamin tidak akan dipindahtangankan, dijual, atau dicetak selama masa angsuran.
+5. **Masa Angsuran Nasabah**:
+   - Nasabah membayar angsuran bulanan ke agregator sesuai jadwal di **Database Cicil**.
+   - Pada aplikasi, nasabah memantau progres pembayaran di tab *"Cicilan Berjalan"*.
+6. **Migrasi Hak Milik Saat Lunas (*Transfer to Buy DB*)**:
+   - Begitu angsuran terakhir terverifikasi lunas (`PAID_OFF`), agregator mengirim webhook penyelesaian.
+   - Layanan Cicil memanggil Core API: keping fisik bertransisi menjadi `ALLOCATED` dan **Token Emas Digital Resmi (`ACTIVE`)** diterbitkan di akun nasabah pada **Database Beli**.
+   - Emas resmi masuk ke saldo portofolio emas nasabah dan dapat disimpan, dijual kembali (*buyback*), atau dicetak fisik.
 
-**Penarikan Dana (`POST /v1/wallet/withdrawals` — Wajib PIN):**
-1. Dalam satu transaksi database: pastikan
+---
 
-### 6.3 Cicil Emas Lewat Mitra
+## 7. Keamanan & Kepatuhan Audit
 
-Alur pengguna: simulasi, lembar perjanjian, ajukan, bayar uang muka, lalu token terkunci.
-
-1. **Simulasi:** pengguna memilih SKU, uang muka, dan tenor. Belum ada yang berubah di sistem.
-2. **Perjanjian:** pengguna membaca perjanjian dan mencentang persetujuan isi perjanjian serta pembagian data ke mitra. Mengajukan tanpa keduanya ditolak dengan `AGREEMENT_REQUIRED`.
-3. **Pengajuan:** `POST /v1/financing/applications` memerlukan PIN. Dalam satu transaksi, sistem memeriksa bahwa harga masih sama dengan yang ditampilkan (kalau tidak, `PRICE_CHANGED`), menyimpan bukti persetujuan, dan mengubah satu unit menjadi `RESERVED` selama 15 menit.
-4. **Uang muka:** `POST /v1/financing/applications/{id}/down-payment` dengan saldo, QRIS, atau VA. Saldo yang kurang tidak membatalkan pengajuan; pengguna bisa memilih metode lain.
-5. **Setelah lunas:** unit menjadi `ALLOCATED`, token terbit sebagai `LOCKED_INSTALLMENT`, dan kontrak dibuat.
-6. **Batal atau kedaluwarsa:** unit kembali `AVAILABLE`, dan token tidak pernah terbit. Pembayaran yang masuk setelah kedaluwarsa dikembalikan ke saldo.
-7. **Lunas:** token menjadi `ACTIVE` setelah webhook lunas dari mitra terverifikasi.
-
-**Bukti persetujuan wajib disimpan permanen** di `financing_agreements` dan tidak boleh diubah: pengguna, versi dan hash isi perjanjian, ringkasan angka yang ditampilkan (harga, uang muka, tenor, angsuran), waktu, perangkat, dan alamat IP. Setiap perubahan isi perjanjian harus menjadi versi baru.
-
-Isi perjanjian perlu ditinjau tim legal dan disesuaikan dengan kontrak mitra sebelum dipakai. Kalau mitra perlu menilai kredit lebih dulu, tambahkan status menunggu persetujuan di antara langkah 3 dan 4, dan perpanjang masa tahan keping sesuai kesepakatan dengan mitra.
-
-### 6.4 Koreksi Data Keping
-
-`PATCH /admin/v1/units/{id}` memperbaiki kesalahan pencatatan, misalnya salah ketik nomor seri. Hanya untuk Supervisor Gudang.
-
-- **Bisa diubah:** nomor seri, SKU, dan lokasi. Status keping tidak berubah lewat endpoint ini.
-- **Syarat keping:** status `INBOUND_QC`, `AVAILABLE`, atau `QUARANTINE`, dan tidak terikat token. Selain itu tolak dengan `UNIT_LOCKED`.
-- **Saat opname:** tolak dengan `COUNT_IN_PROGRESS` kalau lokasi asal atau tujuan sedang diopname.
-- **Validasi:** nomor seri harus unik, dan alasan wajib diisi.
-- **Audit:** catat nilai lama, nilai baru, alasan, dan petugas.
+1. **Prinsip Imutabilitas (Append-Only):**
+   - Tabel `token_events`, `unit_events`, `wallet_entries`, `ledger_entries`, dan `signed_agreements` dilarang menerima operasi `UPDATE` dan `DELETE`.
+2. **Dual-Control Safeguard:**
+   - Fitur penghentian perdagangan darurat (*kill switch*) memerlukan personel Treasury/Finance yang berbeda untuk mengaktifkan kembali.
+3. **Rekonsiliasi Otomatis (Circuit Breaker):**
+   - Job latar belakang memverifikasi kesesuaian unit fisik di brankas vs token aktif dan saldo dompet vs kas penampungan secara berkala. Jika terjadi anomali, sistem otomatis menghentikan transaksi terkait.

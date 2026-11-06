@@ -1,14 +1,15 @@
 package com.reidig.app.ui
 
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,6 +24,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -30,15 +33,24 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
+import androidx.compose.material.icons.outlined.Badge
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Inventory2
-import androidx.compose.material.icons.outlined.ShoppingBag
-import androidx.compose.material.icons.outlined.TableChart
+import androidx.compose.material.icons.outlined.NotificationsNone
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Sell
+import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material.icons.outlined.ShoppingBag
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material.icons.outlined.WarningAmber
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
@@ -49,34 +61,41 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalInspectionMode
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.reidig.app.R
 import com.reidig.shared.GoldToken
 import com.reidig.shared.PaymentMethod
 import com.reidig.shared.PendingOrder
-import com.reidig.shared.Quote
 import com.reidig.shared.Sku
 import com.reidig.shared.gram
 import com.reidig.shared.percent
 import com.reidig.shared.rupiah
 import kotlinx.coroutines.delay
+import java.util.Locale
 
 @Composable
 fun HomeScreen(
@@ -90,61 +109,518 @@ fun HomeScreen(
     onPrices: () -> Unit,
 ) {
     val state by env.repo.state.collectAsStateWithLifecycle()
-    Column(Modifier.fillMaxSize().background(Palette.Paper).verticalScroll(rememberScrollState())) {
-        Column(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp)).background(NightGradient).statusBarsPadding().padding(20.dp),
+    val sku1g = state.sku("LMRE-1G")
+    val firstName = state.user?.name?.substringBefore(' ')?.ifBlank { "Sobat" } ?: "Sobat"
+    var hideBalance by rememberSaveable { mutableStateOf(false) }
+
+    // Simulation state
+    var simMode by rememberSaveable { mutableIntStateOf(0) } // 0 = Beli, 1 = Jual
+    var simUnit by rememberSaveable { mutableStateOf("rp") } // "rp" or "gr"
+    var simInput by rememberSaveable { mutableStateOf("100000") }
+
+    // Price chart range state
+    var chartRange by rememberSaveable { mutableStateOf("1B") }
+
+    val weightGrams = state.totalWeightMg / 1000.0
+    val weightFormatted = String.format(Locale.forLanguageTag("id-ID"), "%.4f", weightGrams)
+
+    Column(
+        Modifier.fillMaxSize()
+            .background(Palette.Paper)
+            .statusBarsPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+    ) {
+        // 1. Top Header Bar (GoldBarsBadge + Halo, User + Notification/Price bell)
+        Row(
+            Modifier.fillMaxWidth().padding(bottom = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                BrandMark(38)
+                GoldBarsBadge(40.dp, 12.dp)
                 Spacer(Modifier.width(10.dp))
-                Text("REIDIG", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, modifier = Modifier.weight(1f))
-                Text("Halo, ${state.user?.name?.substringBefore(' ') ?: ""}", color = Color.White.copy(alpha = 0.85f), fontSize = 14.sp)
+                Column {
+                    Text("Halo,", color = Palette.InkSecondary, fontSize = 12.sp)
+                    Text(firstName, color = Palette.Ink, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                }
             }
-            Spacer(Modifier.height(20.dp))
-            Text("Nilai emas Anda", color = Color.White.copy(alpha = 0.75f), fontSize = 13.sp)
-            Text(rupiah(state.portfolioValue), color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 30.sp)
-            Text("${gram(state.totalWeightMg)} · ${state.ownedTokens.size} token", color = Color.White.copy(alpha = 0.75f), fontSize = 13.sp)
-            Spacer(Modifier.height(16.dp))
-            Column(Modifier.fillMaxWidth().darkCardDepth().padding(14.dp)) {
-                HomePriceRow("1 gr", state.sku("LMRE-1G"))
-                Spacer(Modifier.height(8.dp))
-                Text("Diperbarui ${state.priceUpdatedAtLabel}", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
+            Box(
+                Modifier.size(44.dp)
+                    .cardDepth(Color.White, CircleShape, Palette.Line)
+                    .clickable(onClick = onPrices),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Outlined.NotificationsNone, "Notifikasi & Harga", tint = Palette.Ink, modifier = Modifier.size(20.dp))
+                Box(
+                    Modifier.size(8.dp)
+                        .align(Alignment.TopEnd)
+                        .padding(top = 10.dp, end = 10.dp)
+                        .clip(CircleShape)
+                        .background(Palette.Critical),
+                )
             }
         }
 
-        Column(Modifier.padding(20.dp)) {
-            if (state.user?.verified == false) {
-                SurfaceCard(tint = Palette.GoldSoft, onClick = onVerify) {
-                    Text("Verifikasi identitas sebelum membeli", fontWeight = FontWeight.Bold)
+        // 2. Unverified e-KYC Banner (if user is not verified)
+        if (state.user?.verified == false) {
+            SurfaceCard(tint = Palette.Primary50, outline = Palette.Primary100) {
+                Row(verticalAlignment = Alignment.Top) {
+                    Box(
+                        Modifier.size(36.dp).clip(CircleShape).background(Palette.Primary100),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(Icons.Outlined.Badge, null, tint = Palette.Primary, modifier = Modifier.size(18.dp))
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Verifikasi identitasmu dulu", color = Palette.Ink, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            "Cukup sekitar 2 menit. Setelah itu kamu bisa beli, jual, dan cicil emas.",
+                            color = Palette.InkSecondary,
+                            fontSize = 12.sp,
+                            lineHeight = 17.sp,
+                        )
+                    }
                 }
-                Spacer(Modifier.height(16.dp))
-            }
-            SurfaceCard {
-                Row(Modifier.fillMaxWidth()) {
-                    QuickAction("Beli", Icons.Outlined.ShoppingBag, Modifier.weight(1f), onBuy)
-                    QuickAction("Jual", Icons.Outlined.Sell, Modifier.weight(1f), onSell)
-                    QuickAction("Harga", Icons.Outlined.TableChart, Modifier.weight(1f), onPrices)
-                }
-                Spacer(Modifier.height(8.dp))
-                Row(Modifier.fillMaxWidth()) {
-                    QuickAction("Cetak", Icons.Outlined.Inventory2, Modifier.weight(1f), onPrint)
-                    QuickAction("Cicil", Icons.Outlined.CalendarMonth, Modifier.weight(1f), onInstallment)
-                    QuickAction("Tarik", Icons.Outlined.AccountBalanceWallet, Modifier.weight(1f), onWithdraw)
+                Spacer(Modifier.height(12.dp))
+                Button(
+                    onClick = onVerify,
+                    modifier = Modifier.fillMaxWidth().height(40.dp),
+                    shape = RoundedCornerShape(50),
+                    colors = ButtonDefaults.buttonColors(containerColor = Palette.Primary, contentColor = Palette.Primary50),
+                ) {
+                    Text("Verifikasi sekarang →", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                 }
             }
-            Spacer(Modifier.height(20.dp))
-            SurfaceCard(onClick = onWithdraw) {
-                Text("Saldo REIDIG", color = Palette.InkSoft, fontSize = 13.sp)
-                Text(rupiah(state.walletBalance), fontWeight = FontWeight.Bold, fontSize = 20.sp)
-            }
-            Spacer(Modifier.height(16.dp))
-            Image(
-                painterResource(R.drawable.banner_jual_emas),
-                contentDescription = "Jual emas paling transparan dengan harga tinggi di Raja Emas Indonesia",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxWidth().cardDepth().aspectRatio(2f),
-            )
+            Spacer(Modifier.height(14.dp))
         }
+
+        // 3. Dark Purple Hero Balance Card
+        HeroPurpleCard {
+            Column(Modifier.fillMaxWidth()) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Saldo emas", color = Palette.Primary100, fontSize = 13.sp)
+                    Box(
+                        Modifier.size(32.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.1f))
+                            .clickable { hideBalance = !hideBalance },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            if (hideBalance) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                            contentDescription = "Sembunyikan atau tampilkan saldo",
+                            tint = Palette.Primary100,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        if (hideBalance) "••••••" else weightFormatted,
+                        color = Palette.Gold,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 32.sp,
+                        fontFamily = FontFamily.Monospace,
+                    )
+                    if (!hideBalance) {
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            "gr",
+                            color = Palette.Primary200,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 16.sp,
+                            modifier = Modifier.padding(bottom = 4.dp),
+                        )
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    if (hideBalance) "≈ Rp •••••••" else "≈ ${rupiah(state.portfolioValue)} · ${state.ownedTokens.size} keping",
+                    color = Palette.Primary100,
+                    fontSize = 13.sp,
+                    fontFamily = FontFamily.Monospace,
+                )
+                Spacer(Modifier.height(14.dp))
+                HorizontalDivider(color = Color.White.copy(alpha = 0.14f))
+                Spacer(Modifier.height(12.dp))
+                Row(
+                    Modifier.fillMaxWidth().clickable(onClick = onWithdraw),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Saldo kas", color = Palette.Primary200, fontSize = 12.5.sp)
+                    Text(
+                        if (hideBalance) "Rp •••••••" else rupiah(state.walletBalance),
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        fontFamily = FontFamily.Monospace,
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // 4. Quick Actions Row (White rounded-xl square icon cards)
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            QuickActionTile("Beli emas", Icons.Outlined.ShoppingBag, Modifier.weight(1f), onBuy)
+            QuickActionTile("Jual emas", Icons.Outlined.Sell, Modifier.weight(1f), onSell)
+            QuickActionTile("Cicil emas", Icons.Outlined.CalendarMonth, Modifier.weight(1f), onInstallment)
+            QuickActionTile("Kelola kas", Icons.Outlined.AccountBalanceWallet, Modifier.weight(1f), onWithdraw)
+            QuickActionTile("Cetak fisik", Icons.Outlined.Inventory2, Modifier.weight(1f), onPrint)
+        }
+
+        Spacer(Modifier.height(18.dp))
+
+        // 5. Simulasi Transaksi Card
+        SurfaceCard {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Simulasi transaksi", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Palette.Ink)
+                Row(
+                    Modifier.width(148.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(Palette.Neutral200)
+                        .padding(3.dp),
+                ) {
+                    listOf("Beli", "Jual").forEachIndexed { idx, label ->
+                        val active = simMode == idx
+                        Box(
+                            Modifier.weight(1f)
+                                .then(if (active) Modifier.shadow(1.dp, RoundedCornerShape(50)) else Modifier)
+                                .clip(RoundedCornerShape(50))
+                                .background(if (active) Color.White else Color.Transparent)
+                                .clickable { simMode = idx }
+                                .padding(vertical = 5.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                label,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (active) Palette.Ink else Palette.InkSecondary,
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(14.dp))
+            Text("Masukkan nominal", color = Palette.InkSoft, fontSize = 12.sp)
+            Spacer(Modifier.height(6.dp))
+
+            // Input with Rp / gr toggle
+            Row(
+                Modifier.fillMaxWidth()
+                    .height(48.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.White)
+                    .border(1.5.dp, Palette.Line, RoundedCornerShape(12.dp))
+                    .padding(start = 12.dp, end = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                BasicTextField(
+                    value = simInput,
+                    onValueChange = { raw ->
+                        simInput = raw.filter { it.isDigit() || it == '.' || it == ',' }.take(12)
+                    },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    textStyle = TextStyle(
+                        color = Palette.Ink,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        fontFamily = FontFamily.Monospace,
+                    ),
+                    modifier = Modifier.weight(1f),
+                )
+                Row(
+                    Modifier.clip(RoundedCornerShape(8.dp))
+                        .background(Palette.Paper)
+                        .padding(3.dp),
+                ) {
+                    listOf("rp" to "Rp", "gr" to "gr").forEach { (u, label) ->
+                        val active = simUnit == u
+                        Box(
+                            Modifier.clip(RoundedCornerShape(6.dp))
+                                .background(if (active) Palette.Primary else Color.Transparent)
+                                .clickable {
+                                    if (simUnit != u) {
+                                        simUnit = u
+                                        simInput = if (u == "rp") "100000" else "1"
+                                    }
+                                }
+                                .padding(horizontal = 10.dp, vertical = 5.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                label,
+                                color = if (active) Color.White else Palette.InkSecondary,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+            val rate = if (simMode == 0) sku1g.buyPrice else sku1g.buybackPrice
+            val numeric = simInput.replace(',', '.').toDoubleOrNull() ?: 0.0
+            val resultLabel = when {
+                simUnit == "rp" && simMode == 0 -> "Emas yang didapat"
+                simUnit == "rp" && simMode == 1 -> "Emas yang dijual"
+                simMode == 0 -> "Estimasi harga beli"
+                else -> "Estimasi dana diterima"
+            }
+            val resultValue = if (simUnit == "rp") {
+                val gr = if (rate > 0) numeric / rate.toDouble() else 0.0
+                String.format(Locale.forLanguageTag("id-ID"), "%.4f gr", gr)
+            } else {
+                val rp = (numeric * rate).toLong()
+                rupiah(rp)
+            }
+
+            Row(
+                Modifier.fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Palette.Primary50)
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(resultLabel, color = Palette.InkSecondary, fontSize = 12.5.sp)
+                Text(
+                    resultValue,
+                    color = Palette.Primary,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 16.sp,
+                    fontFamily = FontFamily.Monospace,
+                )
+            }
+
+            Spacer(Modifier.height(12.dp))
+            OutlinedButton(
+                onClick = if (simMode == 0) onBuy else onSell,
+                modifier = Modifier.fillMaxWidth().height(42.dp),
+                shape = RoundedCornerShape(50),
+                border = BorderStroke(1.5.dp, Palette.Primary),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Palette.Primary),
+            ) {
+                Text(
+                    if (simMode == 0) "Beli emas" else "Jual emas",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.5.sp,
+                )
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // 6. Harga Emas Per Gram + Grafik Card
+        SurfaceCard {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column {
+                    Text("Harga emas per gram", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Palette.Ink)
+                    Text("Diperbarui ${state.priceUpdatedAtLabel}", color = Palette.InkSoft, fontSize = 11.5.sp)
+                }
+                Row(
+                    Modifier.clip(RoundedCornerShape(50))
+                        .background(Palette.Primary50)
+                        .clickable(onClick = onPrices)
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Outlined.Refresh, null, tint = Palette.Primary, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Semua pecahan", color = Palette.Primary, fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                PriceStatBox(
+                    label = "Harga beli",
+                    price = rupiah(sku1g.buyPrice),
+                    change = "▲ 0,42% hari ini",
+                    modifier = Modifier.weight(1f),
+                )
+                PriceStatBox(
+                    label = "Harga jual",
+                    price = rupiah(sku1g.buybackPrice),
+                    change = "▲ 0,38% hari ini",
+                    modifier = Modifier.weight(1f),
+                )
+            }
+
+            Spacer(Modifier.height(14.dp))
+            GoldPriceChart(range = chartRange)
+            Spacer(Modifier.height(10.dp))
+
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf("1H", "1M", "1B", "6B", "1T").forEach { r ->
+                    val active = chartRange == r
+                    Box(
+                        Modifier.weight(1f)
+                            .height(30.dp)
+                            .clip(RoundedCornerShape(50))
+                            .background(if (active) Palette.Primary else Palette.Paper)
+                            .clickable { chartRange = r },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            r,
+                            color = if (active) Color.White else Palette.InkSecondary,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // 7. Bottom Security Badge Card
+        SurfaceCard {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    Modifier.size(36.dp).clip(CircleShape).background(Palette.GoodSoft),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Outlined.Shield, null, tint = Palette.Good, modifier = Modifier.size(18.dp))
+                }
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    "Gold Encryption AES-256 & terdaftar resmi Bappebti",
+                    color = Palette.InkSecondary,
+                    fontSize = 12.sp,
+                    lineHeight = 17.sp,
+                )
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+    }
+}
+
+@Composable
+private fun QuickActionTile(label: String, icon: ImageVector, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Column(
+        modifier.clickable(role = Role.Button, onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            Modifier.size(52.dp).cardDepth(Color.White, RoundedCornerShape(16.dp), Palette.Line),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, null, tint = Palette.Primary, modifier = Modifier.size(22.dp))
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            label,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Palette.Ink,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
+private fun PriceStatBox(label: String, price: String, change: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier.clip(RoundedCornerShape(12.dp))
+            .background(Palette.Paper)
+            .padding(12.dp),
+    ) {
+        Text(label, color = Palette.InkSoft, fontSize = 11.5.sp)
+        Spacer(Modifier.height(2.dp))
+        Text(
+            price,
+            color = Palette.Ink,
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = 14.5.sp,
+            fontFamily = FontFamily.Monospace,
+            maxLines = 1,
+        )
+        Spacer(Modifier.height(3.dp))
+        Text(change, color = Palette.Good, fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
+    }
+}
+
+@Composable
+private fun GoldPriceChart(range: String) {
+    val points = remember(range) {
+        when (range) {
+            "1H" -> listOf(0.45f, 0.48f, 0.46f, 0.52f, 0.50f, 0.56f, 0.62f, 0.60f, 0.68f, 0.72f)
+            "1M" -> listOf(0.35f, 0.40f, 0.38f, 0.45f, 0.52f, 0.49f, 0.58f, 0.64f, 0.69f, 0.78f)
+            "1B" -> listOf(0.25f, 0.32f, 0.30f, 0.42f, 0.48f, 0.55f, 0.52f, 0.65f, 0.74f, 0.85f)
+            "6B" -> listOf(0.18f, 0.24f, 0.31f, 0.28f, 0.40f, 0.50f, 0.61f, 0.68f, 0.79f, 0.90f)
+            else -> listOf(0.12f, 0.20f, 0.28f, 0.36f, 0.44f, 0.52f, 0.63f, 0.74f, 0.84f, 0.94f)
+        }
+    }
+    Canvas(Modifier.fillMaxWidth().height(110.dp)) {
+        val w = size.width
+        val h = size.height
+        val padTop = 10.dp.toPx()
+        val padBottom = 10.dp.toPx()
+        val usableH = h - padTop - padBottom
+        val stepX = w / (points.size - 1).coerceAtLeast(1)
+
+        val linePath = Path()
+        val areaPath = Path()
+        points.forEachIndexed { idx, norm ->
+            val x = idx * stepX
+            val y = padTop + (1f - norm) * usableH
+            if (idx == 0) {
+                linePath.moveTo(x, y)
+                areaPath.moveTo(x, h)
+                areaPath.lineTo(x, y)
+            } else {
+                linePath.lineTo(x, y)
+                areaPath.lineTo(x, y)
+            }
+        }
+        areaPath.lineTo(w, h)
+        areaPath.close()
+
+        drawPath(
+            path = areaPath,
+            brush = Brush.verticalGradient(
+                colors = listOf(Palette.Primary.copy(alpha = 0.22f), Palette.Primary.copy(alpha = 0.0f)),
+                startY = 0f,
+                endY = h,
+            ),
+        )
+        drawPath(
+            path = linePath,
+            color = Palette.Primary,
+            style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
+        )
+        val lastY = padTop + (1f - points.last()) * usableH
+        drawCircle(Color.White, radius = 5.dp.toPx(), center = Offset(w, lastY))
+        drawCircle(Palette.Primary, radius = 3.5.dp.toPx(), center = Offset(w, lastY))
     }
 }
 
@@ -156,43 +632,28 @@ private fun HomePreview() = ReidigTheme { HomeScreen(rememberPreviewEnv(), {}, {
 @Composable
 private fun HomeUnverifiedPreview() = ReidigTheme { HomeScreen(rememberPreviewEnv(false), {}, {}, {}, {}, {}, {}, {}) }
 
-@Composable
-private fun HomePriceRow(weightLabel: String, sku: Sku) {
-    Text(weightLabel, color = Palette.Gold, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-    Spacer(Modifier.height(2.dp))
-    Row(Modifier.fillMaxWidth()) {
-        Column(Modifier.weight(1f)) {
-            Text("Harga beli", color = Color.White.copy(alpha = 0.75f), fontSize = 12.5.sp)
-            Text(rupiah(sku.buyPrice), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-        }
-        Column(Modifier.weight(1f)) {
-            Text("Harga jual", color = Color.White.copy(alpha = 0.75f), fontSize = 12.5.sp)
-            Text(rupiah(sku.buybackPrice), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-        }
-    }
-}
-
 /** Harga beli dan harga jual (buyback) semua pecahan. */
 @Composable
 fun PriceTableScreen(env: AppEnv, onBack: () -> Unit) {
     val state by env.repo.state.collectAsStateWithLifecycle()
     Column(Modifier.fillMaxSize().background(Palette.Paper).statusBarsPadding()) {
         TopTitleBar("Tabel Harga Emas", onBack)
-        LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 28.dp)) {
+        LazyColumn(contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 28.dp)) {
             item {
-                Text("Diperbarui ${state.priceUpdatedAtLabel}", color = Palette.InkSoft, fontSize = 13.sp)
-                Spacer(Modifier.height(2.dp))
+                SurfaceCard {
+                    Text("Diperbarui ${state.priceUpdatedAtLabel}", color = Palette.InkSoft, fontSize = 12.sp)
+                    Spacer(Modifier.height(10.dp))
+                    PriceTableRow("Berat", "Harga beli", "Harga jual", header = true)
+                    HorizontalDivider(color = Palette.Line)
+                    state.skus.forEachIndexed { idx, sku ->
+                        PriceTableRow(gram(sku.weightMg), rupiah(sku.buyPrice), rupiah(sku.buybackPrice))
+                        if (idx < state.skus.lastIndex) {
+                            HorizontalDivider(color = Palette.Line.copy(alpha = 0.5f))
+                        }
+                    }
+                }
                 Spacer(Modifier.height(12.dp))
-                PriceTableRow("Berat", "Harga beli", "Harga jual", header = true)
-                HorizontalDivider(color = Palette.Line)
-            }
-            items(state.skus, key = { it.code }) { sku ->
-                PriceTableRow(gram(sku.weightMg), rupiah(sku.buyPrice), rupiah(sku.buybackPrice))
-                HorizontalDivider(color = Palette.Ring)
-            }
-            item {
-                Spacer(Modifier.height(14.dp))
-                Text(state.skus.firstOrNull()?.product ?: "", color = Palette.InkSoft, fontSize = 13.sp)
+                Text(state.skus.firstOrNull()?.product ?: "", color = Palette.InkSoft, fontSize = 12.5.sp)
             }
         }
     }
@@ -205,59 +666,102 @@ private fun PriceTablePreview() = ReidigTheme { PriceTableScreen(rememberPreview
 @Composable
 private fun PriceTableRow(weight: String, buy: String, sell: String, header: Boolean = false) {
     val color = if (header) Palette.InkSoft else Palette.Ink
-    val fontSize = if (header) 12.5.sp else 13.5.sp
-    val style = TextStyle(fontFeatureSettings = "tnum")
-    Row(Modifier.fillMaxWidth().padding(vertical = if (header) 8.dp else 13.dp), verticalAlignment = Alignment.CenterVertically) {
+    val fontSize = if (header) 12.sp else 13.sp
+    Row(Modifier.fillMaxWidth().padding(vertical = if (header) 8.dp else 12.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(weight, color = color, fontSize = fontSize, fontWeight = if (header) FontWeight.Medium else FontWeight.SemiBold, modifier = Modifier.width(64.dp))
-        Text(buy, color = color, fontSize = fontSize, style = style, textAlign = TextAlign.End, maxLines = 1, modifier = Modifier.weight(1f))
-        Text(sell, color = color, fontSize = fontSize, style = style, textAlign = TextAlign.End, maxLines = 1, modifier = Modifier.weight(1f))
-    }
-}
-
-@Composable
-private fun QuickAction(label: String, icon: ImageVector, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Column(
-        modifier.clip(RoundedCornerShape(14.dp)).clickable(role = Role.Button, onClick = onClick).padding(vertical = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Box(Modifier.size(48.dp).clip(CircleShape).background(Palette.Ring), contentAlignment = Alignment.Center) {
-            Icon(icon, null, tint = Palette.Primary)
-        }
-        Spacer(Modifier.height(6.dp))
-        Text(label, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        Text(buy, color = color, fontSize = fontSize, fontFamily = if (header) FontFamily.Default else FontFamily.Monospace, fontWeight = if (header) FontWeight.Medium else FontWeight.SemiBold, textAlign = TextAlign.End, maxLines = 1, modifier = Modifier.weight(1f))
+        Text(sell, color = color, fontSize = fontSize, fontFamily = if (header) FontFamily.Default else FontFamily.Monospace, fontWeight = if (header) FontWeight.Medium else FontWeight.SemiBold, textAlign = TextAlign.End, maxLines = 1, modifier = Modifier.weight(1f))
     }
 }
 
 @Composable
 fun CatalogScreen(env: AppEnv, header: @Composable () -> Unit = {}, onSelect: (String) -> Unit) {
     val state by env.repo.state.collectAsStateWithLifecycle()
+    val sku1g = state.sku("LMRE-1G")
     Column(Modifier.fillMaxSize().background(Palette.Paper).statusBarsPadding()) {
         TopTitleBar("Transaksi", null)
         header()
         LazyColumn(
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 20.dp),
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             item {
-                Spacer(Modifier.height(2.dp))
-            }
-            items(state.skus, key = { it.code }) { sku ->
-                SurfaceCard(onClick = { onSelect(sku.code) }) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(Modifier.size(50.dp).clip(RoundedCornerShape(12.dp)).background(Palette.GoldSoft), contentAlignment = Alignment.Center) {
-                            Text(gram(sku.weightMg).removeSuffix(" gr"), color = Palette.GoldDeep, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                // Summary card matching 13 Transaksi prototype
+                SurfaceCard {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Column {
+                            Text("Saldo kas tersedia", color = Palette.InkSoft, fontSize = 12.sp)
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                rupiah(state.walletBalance),
+                                color = Palette.Ink,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp,
+                                fontFamily = FontFamily.Monospace,
+                            )
                         }
-                        Spacer(Modifier.width(12.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text("${sku.product} ${gram(sku.weightMg)}", fontWeight = FontWeight.SemiBold)
-                            Text(rupiah(sku.buyPrice), fontWeight = FontWeight.Bold, color = Palette.Primary)
-                        }
-                        if (sku.stock == 0) {
-                            StatusChip("Stok habis", ChipTone.WARN, Icons.Outlined.WarningAmber)
-                        } else {
-                            Text("Stok ${sku.stock}", color = Palette.InkSoft, fontSize = 12.5.sp)
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text("Harga beli / gr", color = Palette.InkSoft, fontSize = 12.sp)
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                rupiah(sku1g.buyPrice),
+                                color = Palette.Primary,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp,
+                                fontFamily = FontFamily.Monospace,
+                            )
                         }
                     }
+                }
+            }
+            item {
+                Text("Pilih pecahan emas fisik 24K", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Palette.Ink, modifier = Modifier.padding(top = 4.dp))
+            }
+            items(state.skus, key = { it.code }) { sku ->
+                CatalogSkuCard(sku) { onSelect(sku.code) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CatalogSkuCard(sku: Sku, onClick: () -> Unit) {
+    SurfaceCard(onClick = onClick) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier.size(48.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Palette.GoldSoft)
+                    .border(1.dp, Palette.Gold200, RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    gram(sku.weightMg).removeSuffix(" gr"),
+                    color = Palette.GoldDeep,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 13.sp,
+                    fontFamily = FontFamily.Monospace,
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text("${sku.product} ${gram(sku.weightMg)}", fontWeight = FontWeight.SemiBold, fontSize = 14.5.sp, color = Palette.Ink)
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    rupiah(sku.buyPrice),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    color = Palette.Primary,
+                    fontFamily = FontFamily.Monospace,
+                )
+            }
+            if (sku.stock == 0) {
+                StatusChip("Stok habis", ChipTone.WARN, Icons.Outlined.WarningAmber)
+            } else {
+                Box(
+                    Modifier.clip(RoundedCornerShape(50)).background(Palette.Primary50).padding(horizontal = 10.dp, vertical = 5.dp),
+                ) {
+                    Text("Stok ${sku.stock}", color = Palette.Primary, fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -274,11 +778,10 @@ fun BuyScreen(env: AppEnv, skuCode: String, onBack: () -> Unit, onDone: (List<Go
     val sku = state.sku(skuCode)
     var quantity by remember { mutableIntStateOf(1) }
     var method by remember { mutableStateOf(PaymentMethod.QRIS) }
-    // LaunchedEffect tidak berjalan di preview statis, jadi harga diisi di sini.
     val inPreview = LocalInspectionMode.current
     var quote by remember { mutableStateOf(if (inPreview) env.repo.quoteBuy(skuCode, 1) else null) }
     var askPin by remember { mutableStateOf(false) }
-    var secondsLeft by remember { mutableLongStateOf(0L) }
+    var secondsLeft by remember { mutableLongStateOf(60L) }
     var pendingOrder by remember { mutableStateOf<PendingOrder?>(null) }
 
     // Harga dikunci 60 detik, lalu diperbarui otomatis.
@@ -299,56 +802,120 @@ fun BuyScreen(env: AppEnv, skuCode: String, onBack: () -> Unit, onDone: (List<Go
     val insufficient = method == PaymentMethod.WALLET && current != null && state.walletBalance < current.total
 
     FormScreen(
-        "Beli ${gram(sku.weightMg)}",
+        "Konfirmasi transaksi",
         onBack,
         bottom = {
-            if (current != null) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Harga dikunci", color = Palette.InkSoft, fontSize = 13.sp)
-                    Text("0:${secondsLeft.coerceAtLeast(0).toString().padStart(2, '0')}", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                }
-                Spacer(Modifier.height(10.dp))
-            }
             PrimaryButton(
-                "Bayar ${current?.let { rupiah(it.total) } ?: ""}",
+                "Konfirmasi & bayar ${current?.let { rupiah(it.total) } ?: ""}",
                 { askPin = true },
                 enabled = current != null && !insufficient && sku.stock > 0,
             )
         },
     ) {
-        Text("${sku.product} ${gram(sku.weightMg)}", fontWeight = FontWeight.ExtraBold, fontSize = 22.sp)
-        Text("Stok ${sku.stock} keping", color = Palette.InkSoft, fontSize = 14.sp)
-        Spacer(Modifier.height(16.dp))
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("Jumlah keping", fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-            IconButton(onClick = { if (quantity > 1) quantity-- }, enabled = quantity > 1) { Icon(Icons.Filled.Remove, "Kurangi") }
-            Text("$quantity", fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.padding(horizontal = 8.dp))
-            IconButton(onClick = { if (quantity < sku.stock) quantity++ }, enabled = quantity < sku.stock) { Icon(Icons.Filled.Add, "Tambah") }
-        }
-        Spacer(Modifier.height(10.dp))
+        // Price Lock Timer Banner (matching 14 Konfirmasi prototype)
         if (current != null) {
-            SurfaceCard {
-                SummaryRow("Harga per keping", rupiah(current.unitPrice))
-                SummaryRow("Jumlah", "$quantity keping")
-                SummaryRow("Total", rupiah(current.total), strong = true)
+            val sec = secondsLeft.coerceIn(0, 60)
+            SurfaceCard(tint = Palette.Primary50, outline = Palette.Primary100) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(
+                            progress = { sec / 60f },
+                            modifier = Modifier.size(44.dp),
+                            color = if (sec <= 15) Palette.Critical else Palette.Primary,
+                            trackColor = Palette.Primary200,
+                            strokeWidth = 3.5.dp,
+                        )
+                        Text(
+                            "${sec}d",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace,
+                            color = if (sec <= 15) Palette.Critical else Palette.Primary,
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Harga dikunci ${sec} detik", fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = Palette.Ink)
+                        Text(
+                            "Harga akan diperbarui otomatis jika waktu habis.",
+                            color = Palette.InkSecondary,
+                            fontSize = 12.sp,
+                        )
+                    }
+                }
             }
-            Spacer(Modifier.height(12.dp))
-            SurfaceCard(tint = Palette.WarnSoft) {
-                Text("Kalau dijual lagi sekarang", fontWeight = FontWeight.Bold, color = Palette.Warn)
-                Spacer(Modifier.height(2.dp))
+            Spacer(Modifier.height(14.dp))
+        }
+
+        // Detail Emas & Rincian Order Card
+        SurfaceCard {
+            Text(
+                "DETAIL EMAS",
+                color = Palette.InkSoft,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.6.sp,
+            )
+            Spacer(Modifier.height(8.dp))
+            SummaryRow("Jenis transaksi", "Beli Emas")
+            SummaryRow("Produk", "${sku.product} ${gram(sku.weightMg)}", strong = true, valueColor = Palette.Primary)
+            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("Jumlah keping (Stok ${sku.stock})", color = Palette.InkSecondary, fontSize = 13.5.sp, modifier = Modifier.weight(1f))
+                IconButton(onClick = { if (quantity > 1) quantity-- }, enabled = quantity > 1, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Filled.Remove, "Kurangi", modifier = Modifier.size(18.dp))
+                }
                 Text(
-                    "Anda menerima ${rupiah(current.buybackValueNow)}, ${percent(sku.spreadPercent)} di bawah harga beli. Token bisa dijual 24 jam setelah dibeli.",
-                    color = Palette.Ink,
-                    fontSize = 13.5.sp,
-                    lineHeight = 19.sp,
+                    "$quantity",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    fontFamily = FontFamily.Monospace,
+                    modifier = Modifier.padding(horizontal = 10.dp),
+                )
+                IconButton(onClick = { if (quantity < sku.stock) quantity++ }, enabled = quantity < sku.stock, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Filled.Add, "Tambah", modifier = Modifier.size(18.dp))
+                }
+            }
+
+            if (current != null) {
+                Spacer(Modifier.height(10.dp))
+                HorizontalDivider(color = Palette.Line)
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    "RINCIAN ORDER (RP)",
+                    color = Palette.InkSoft,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.6.sp,
+                )
+                Spacer(Modifier.height(8.dp))
+                SummaryRow("Harga per keping", rupiah(current.unitPrice))
+                SummaryRow("Biaya admin", "Gratis", valueColor = Palette.Good)
+                Spacer(Modifier.height(6.dp))
+                HorizontalDivider(color = Palette.Line)
+                Spacer(Modifier.height(6.dp))
+                SummaryRow("Total pembayaran", rupiah(current.total), strong = true)
+            }
+        }
+
+        if (current != null) {
+            Spacer(Modifier.height(12.dp))
+            SurfaceCard(tint = Palette.WarnSoft, outline = Palette.WarnBorder) {
+                Text("Estimasi buyback saat ini", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Palette.Warn)
+                Spacer(Modifier.height(3.dp))
+                Text(
+                    "Jika dijual kembali sekarang senilai ${rupiah(current.buybackValueNow)} (selisih ${percent(sku.spreadPercent)}). Token dapat dijual 24 jam setelah pembelian.",
+                    color = Palette.InkSecondary,
+                    fontSize = 12.5.sp,
+                    lineHeight = 18.sp,
                 )
             }
         }
+
         Spacer(Modifier.height(18.dp))
-        Text("Metode pembayaran", fontWeight = FontWeight.SemiBold)
+        Text("Metode pembayaran", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Palette.Ink)
         Spacer(Modifier.height(8.dp))
         PaymentMethod.entries.forEach { option ->
-            val detail = if (option == PaymentMethod.WALLET) "Tersedia ${rupiah(state.walletBalance)}" else ""
+            val detail = if (option == PaymentMethod.WALLET) "Saldo tersedia ${rupiah(state.walletBalance)}" else "Konfirmasi otomatis"
             PaymentOption(option.label, detail, option == method) { method = option }
             Spacer(Modifier.height(8.dp))
         }
@@ -357,7 +924,7 @@ fun BuyScreen(env: AppEnv, skuCode: String, onBack: () -> Unit, onDone: (List<Go
     }
 
     if (askPin && current != null) {
-        PinDialog(env, "Bayar ${rupiah(current.total)}", { askPin = false }) {
+        PinDialog(env, "Konfirmasi Beli Emas senilai ${rupiah(current.total)}", { askPin = false }) {
             askPin = false
             env.attempt { env.repo.createOrder(current.id, method) }?.let { order ->
                 if (method == PaymentMethod.WALLET) {
@@ -394,7 +961,7 @@ fun BuyScreen(env: AppEnv, skuCode: String, onBack: () -> Unit, onDone: (List<Go
 @Composable
 private fun BuyPreview() = ReidigTheme { BuyScreen(rememberPreviewEnv(), "LMRE-1G", {}, {}) }
 
-/** Menampilkan QR atau nomor VA dari iFortepay sampai callback pembayaran masuk. */
+/** Menampilkan QR atau nomor VA sesuai layar 15 Menunggu Pembayaran prototipe. */
 @Composable
 internal fun PaymentWaitDialog(
     env: AppEnv,
@@ -419,37 +986,75 @@ internal fun PaymentWaitDialog(
         }
     }
     Dialog(onDismissRequest = onCancel, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Column(Modifier.fillMaxSize().background(Color.White).statusBarsPadding().navigationBarsPadding()) {
+        Column(Modifier.fillMaxSize().background(Palette.Paper).statusBarsPadding().navigationBarsPadding()) {
             TopTitleBar("Menunggu Pembayaran", onCancel)
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(rupiah(amount), fontWeight = FontWeight.ExtraBold, fontSize = 28.sp)
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    "Bayar dalam ${secondsLeft / 60}:${(secondsLeft % 60).toString().padStart(2, '0')}",
-                    color = Palette.InkSoft,
-                )
-                Spacer(Modifier.height(20.dp))
-                if (method == PaymentMethod.QRIS) {
-                    Box(
-                        Modifier.size(220.dp).clip(RoundedCornerShape(16.dp)).background(Palette.Lavender).border(1.dp, Palette.Ring, RoundedCornerShape(16.dp)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(Icons.Filled.QrCode2, "Kode QRIS", tint = Palette.Primary, modifier = Modifier.size(170.dp))
+            Column(
+                Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 14.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                SurfaceCard(tint = Palette.WarnSoft, outline = Palette.WarnBorder) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("Selesaikan pembayaran dalam", color = Palette.Warn, fontSize = 12.5.sp, fontWeight = FontWeight.Medium)
+                        Text(
+                            "${secondsLeft / 60}:${(secondsLeft % 60).toString().padStart(2, '0')}",
+                            color = Palette.Warn,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            fontFamily = FontFamily.Monospace,
+                        )
                     }
-                    Spacer(Modifier.height(12.dp))
-                    Text("Pindai dengan aplikasi bank atau e-wallet.", color = Palette.InkSoft, textAlign = TextAlign.Center)
-                } else {
-                    SurfaceCard(tint = Palette.Lavender) {
-                        Text("Nomor Virtual Account BCA", color = Palette.InkSoft, fontSize = 13.sp)
-                        Text(paymentCode, fontWeight = FontWeight.Bold, fontSize = 22.sp)
-                    }
-                    Spacer(Modifier.height(12.dp))
-                    Text("Transfer sesuai nominal dari ATM atau aplikasi bank.", color = Palette.InkSoft, textAlign = TextAlign.Center)
                 }
-                Spacer(Modifier.height(16.dp))
-                Text("Harga dan keping ditahan sampai batas waktu habis.", color = Palette.InkSoft, fontSize = 13.sp, textAlign = TextAlign.Center)
+                Spacer(Modifier.height(14.dp))
+                SurfaceCard {
+                    Text("Total pembayaran", color = Palette.InkSoft, fontSize = 12.sp)
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        rupiah(amount),
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 26.sp,
+                        color = Palette.Primary,
+                        fontFamily = FontFamily.Monospace,
+                    )
+                    Spacer(Modifier.height(14.dp))
+                    HorizontalDivider(color = Palette.Line)
+                    Spacer(Modifier.height(14.dp))
+                    if (method == PaymentMethod.QRIS) {
+                        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            Box(
+                                Modifier.size(210.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(Palette.Primary50)
+                                    .border(1.dp, Palette.Primary100, RoundedCornerShape(16.dp)),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(Icons.Filled.QrCode2, "Kode QRIS", tint = Palette.Primary, modifier = Modifier.size(164.dp))
+                            }
+                        }
+                        Spacer(Modifier.height(12.dp))
+                        Text("Pindai QRIS dengan aplikasi mobile banking atau e-wallet.", color = Palette.InkSecondary, fontSize = 13.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                    } else {
+                        Text("Nomor Virtual Account BCA", color = Palette.InkSoft, fontSize = 12.sp)
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            paymentCode,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 22.sp,
+                            color = Palette.Ink,
+                            fontFamily = FontFamily.Monospace,
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text("Transfer sesuai nominal tepat hingga digit terakhir.", color = Palette.InkSecondary, fontSize = 12.5.sp)
+                    }
+                }
+                Spacer(Modifier.height(14.dp))
+                Text(
+                    "Harga dan keping emas ditahan untukmu sampai batas waktu pembayaran berakhir.",
+                    color = Palette.InkSoft,
+                    fontSize = 12.5.sp,
+                    textAlign = TextAlign.Center,
+                )
             }
-            Column(Modifier.padding(20.dp)) {
+            Column(Modifier.padding(horizontal = 24.dp, vertical = 16.dp)) {
                 PrimaryButton("Saya sudah bayar", onConfirm)
                 Spacer(Modifier.height(10.dp))
                 SecondaryButton(cancelLabel, onCancel)
@@ -462,31 +1067,39 @@ internal fun PaymentWaitDialog(
 internal fun PaymentOption(title: String, detail: String, selected: Boolean, onClick: () -> Unit) {
     val shape = RoundedCornerShape(12.dp)
     Row(
-        Modifier.fillMaxWidth().cardDepth(if (selected) Palette.Lavender else Color.White, shape, if (selected) Palette.Primary else null)
-            .clickable(role = Role.RadioButton, onClick = onClick).padding(horizontal = 12.dp, vertical = 10.dp),
+        Modifier.fillMaxWidth()
+            .clip(shape)
+            .background(if (selected) Palette.Primary50 else Color.White)
+            .border(if (selected) 2.dp else 1.5.dp, if (selected) Palette.Primary else Palette.Line, shape)
+            .clickable(role = Role.RadioButton, onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        RadioButton(selected, null, colors = RadioButtonDefaults.colors(selectedColor = Palette.Primary, unselectedColor = Palette.Primary))
-        Spacer(Modifier.width(10.dp))
-        Column {
-            Text(title, fontWeight = FontWeight.SemiBold)
-            if (detail.isNotEmpty()) Text(detail, color = Palette.InkSoft, fontSize = 13.sp)
+        Column(Modifier.weight(1f)) {
+            Text(title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Palette.Ink)
+            if (detail.isNotEmpty()) {
+                Spacer(Modifier.height(2.dp))
+                Text(detail, color = Palette.InkSecondary, fontSize = 12.sp)
+            }
         }
+        RadioButton(
+            selected = selected,
+            onClick = null,
+            colors = RadioButtonDefaults.colors(selectedColor = Palette.Primary, unselectedColor = Palette.Line),
+        )
     }
 }
 
-/** Layar hasil bersama untuk transaksi yang berhasil. */
+/** Layar hasil bersama untuk transaksi yang berhasil (menggunakan DoubleRingSuccessBadge). */
 @Composable
 fun SuccessScreen(title: String, message: String, buttonLabel: String, onDone: () -> Unit, details: @Composable () -> Unit = {}) {
-    FormScreen(title, null, bottom = { PrimaryButton(buttonLabel, onDone) }) {
-        Spacer(Modifier.height(24.dp))
+    FormScreen("", null, bottom = { PrimaryButton(buttonLabel, onDone) }) {
+        Spacer(Modifier.height(20.dp))
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Box(Modifier.size(84.dp).clip(CircleShape).background(Palette.GoodSoft), contentAlignment = Alignment.Center) {
-                Icon(Icons.Filled.Check, null, tint = Palette.Good, modifier = Modifier.size(44.dp))
-            }
+            DoubleRingSuccessBadge(Icons.Filled.Check)
         }
-        Spacer(Modifier.height(18.dp))
-        Headline(title, message, centered = true)
+        Spacer(Modifier.height(22.dp))
+        Headline(title, message, centered = true, titleColor = Palette.Primary)
         Spacer(Modifier.height(20.dp))
         details()
     }
