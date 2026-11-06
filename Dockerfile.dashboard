@@ -1,19 +1,16 @@
 # =============================================================================
-# REIDIG Operational Dashboard (React 19 + Vite + TypeScript -> Nginx SPA)
-# Mendukung Build Context dari root repo (`.`) maupun subfolder (`./dashboard`)
+# Dockerfile.dashboard — REIDIG Web Operational Portal (React + Vite -> Nginx)
+# Build Context: . (Root repository)
+# Container Port: 80
 # =============================================================================
 FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-COPY . /tmp/build-ctx
-RUN if [ -f /tmp/build-ctx/dashboard/package.json ]; then \
-        cp -r /tmp/build-ctx/dashboard/. /app/; \
-    else \
-        cp -r /tmp/build-ctx/. /app/; \
-    fi && rm -rf /tmp/build-ctx
-
+COPY dashboard/package*.json ./
 RUN npm ci || npm install
+
+COPY dashboard/ ./
 RUN npm run build
 
 # Stage 2: Production Nginx Server

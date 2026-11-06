@@ -1,8 +1,7 @@
 # =============================================================================
-# REIDIG Android APK Builder & Download Server (Goldin Prototype v1)
-# Mendukung Build Context dari root repo (`.`) maupun subfolder (`./android`)
-# Stage 1: Build APK dengan JDK 21 + Android SDK 36
-# Stage 2: Sajikan halaman unduh APK via Nginx pada port 80
+# Dockerfile.apk — REIDIG Android APK Builder & Download Server (Goldin v1)
+# Build Context: . (Root repository)
+# Container Port: 80
 # =============================================================================
 FROM eclipse-temurin:21-jdk AS apk-builder
 
@@ -27,16 +26,10 @@ RUN mkdir -p ${ANDROID_HOME}/cmdline-tools && \
 
 WORKDIR /workspace
 
-COPY . /tmp/build-ctx
-RUN if [ -f /tmp/build-ctx/android/gradlew ]; then \
-        cp -r /tmp/build-ctx/android/. /workspace/; \
-    else \
-        cp -r /tmp/build-ctx/. /workspace/; \
-    fi && rm -rf /tmp/build-ctx && \
-    rm -f /workspace/local.properties && \
-    chmod +x /workspace/gradlew
-
-RUN ./gradlew :app:assembleDebug --no-daemon --stacktrace
+COPY android/ /workspace/
+RUN rm -f /workspace/local.properties && \
+    chmod +x /workspace/gradlew && \
+    ./gradlew :app:assembleDebug --no-daemon --stacktrace
 
 # Stage 2: Nginx Web Server untuk Unduh APK di Dokploy
 FROM nginx:stable-alpine

@@ -1,6 +1,7 @@
 # =============================================================================
-# REIDIG API Backend (FastAPI + SQLAlchemy + Alembic + Celery)
-# Mendukung Build Context dari root repo (`.`) maupun subfolder (`./reidig-sys`)
+# Dockerfile.api — REIDIG API Backend (FastAPI + SQLAlchemy + Alembic + Celery)
+# Build Context: . (Root repository)
+# Container Port: 8000
 # =============================================================================
 FROM python:3.12-slim
 
@@ -11,22 +12,17 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Install dependensi sistem (curl untuk healthcheck, libpq untuk PostgreSQL)
+# Install dependensi sistem (curl untuk healthcheck, libpq5 untuk PostgreSQL)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     libpq5 \
     && rm -rf /var/lib/apt/lists/*
 
-# Salin context dan deteksi otomatis apakah context berasal dari root (`.`) atau `./reidig-sys`
-COPY . /tmp/build-ctx
-RUN if [ -f /tmp/build-ctx/reidig-sys/requirements.txt ]; then \
-        cp -r /tmp/build-ctx/reidig-sys/. /app/; \
-    else \
-        cp -r /tmp/build-ctx/. /app/; \
-    fi && rm -rf /tmp/build-ctx
-
+COPY reidig-sys/requirements.txt /app/requirements.txt
 RUN pip install --upgrade pip && \
-    pip install -r requirements.txt
+    pip install -r /app/requirements.txt
+
+COPY reidig-sys/ /app/
 
 EXPOSE 8000
 

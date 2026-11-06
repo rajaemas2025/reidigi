@@ -1,8 +1,8 @@
 services:
   api:
     build:
-      context: ./reidig-sys
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: Dockerfile.api
     ports:
       - "8000:8000"
     environment:
@@ -12,16 +12,16 @@ services:
 
   dashboard:
     build:
-      context: ./dashboard
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: Dockerfile.dashboard
     ports:
       - "5173:80"
     restart: unless-stopped
 
   apk:
     build:
-      context: ./android
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: Dockerfile.apk
     ports:
       - "8080:80"
     restart: unless-stopped

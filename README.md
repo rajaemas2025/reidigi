@@ -135,15 +135,15 @@ npm run dev
 
 ## 🐳 Panduan Deployment di Dokploy (3 Deployment Terpisah)
 
-Repositori ini telah dilengkapi `Dockerfile` khusus untuk masing-masing layanan (**API**, **Dashboard**, dan **APK Download Server**) yang mendukung *Build Context* baik dari root (`.`) maupun dari masing-masing subfolder:
+Di root repositori tersedia 3 file `Dockerfile` terpisah untuk masing-masing layanan:
 
-| Layanan Deployment | Build Type | Context Path | Dockerfile Path | Container Port (Traefik) |
+| Layanan Deployment | Build Type | Context Path | Docker File | Container Port (Traefik) |
 |---|---|---|---|---|
-| **1. API Backend** | `Dockerfile` | `./reidig-sys` *(atau `.`)* | `reidig-sys/Dockerfile` *(atau `Dockerfile` jika context `./reidig-sys`)* | **`8000`** |
-| **2. Web Dashboard** | `Dockerfile` | `./dashboard` *(atau `.`)* | `dashboard/Dockerfile` *(atau `Dockerfile` jika context `./dashboard`)* | **`80`** |
-| **3. Android APK** | `Dockerfile` | `./android` *(atau `.`)* | `android/Dockerfile` *(atau `Dockerfile` jika context `./android`)* | **`80`** |
+| **1. API Backend** | `Dockerfile` | `.` *(atau kosong)* | [`Dockerfile.api`](file:///Users/rajaemasindonesia/Documents/emdig/Dockerfile.api) | **`8000`** |
+| **2. Web Dashboard** | `Dockerfile` | `.` *(atau kosong)* | [`Dockerfile.dashboard`](file:///Users/rajaemasindonesia/Documents/emdig/Dockerfile.dashboard) | **`80`** |
+| **3. Android APK** | `Dockerfile` | `.` *(atau kosong)* | [`Dockerfile.apk`](file:///Users/rajaemasindonesia/Documents/emdig/Dockerfile.apk) | **`80`** |
 
-> **Catatan Deployment APK di Dokploy:** [`android/Dockerfile`](file:///Users/rajaemasindonesia/Documents/emdig/android/Dockerfile) menggunakan *multi-stage build* (JDK 21 + Android SDK 36 untuk mem-build `app-debug.apk`, lalu Nginx pada port `80` untuk menyajikan halaman web unduh `/reidig-goldin.apk`) sehingga container tetap hidup (*running*) dan dapat diakses langsung melalui domain Dokploy Anda.
+> **Catatan Deployment APK di Dokploy:** [`Dockerfile.apk`](file:///Users/rajaemasindonesia/Documents/emdig/Dockerfile.apk) menggunakan *multi-stage build* (JDK 21 + Android SDK 36 untuk mem-build `app-debug.apk`, lalu Nginx pada port `80` untuk menyajikan halaman web unduh `/reidig-goldin.apk`) sehingga container tetap hidup (*running*) dan dapat diakses langsung melalui domain Dokploy Anda.
 
 ---
 

@@ -1,0 +1,24 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "8000:8000"
+    environment:
+      - REIDIG_ENV=dev
+      - PORT=8000
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    ports:
+      - "5173:80"
+
+  apk:
+    build:
+      context: .
+      dockerfile: Dockerfile.apk
+    ports:
+      - "8080:80"
