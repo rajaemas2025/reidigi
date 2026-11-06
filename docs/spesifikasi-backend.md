@@ -1,59 +1,104 @@
-# Spesifikasi Teknis Backend REIDIG (Raja Emas Indonesia Digital)
+# Spesifikasi Teknis & Panduan Backend REIDIG (Raja Emas Indonesia Digital)
+
+Dokumen ini merupakan acuan arsitektur, aturan domain, skema database, panduan operasional server, serta kontrak API antara backend (`reidig-sys`), aplikasi mobile nasabah (`android` — **Goldin Prototype v1**), dan portal operasional (`dashboard`).
 
 ---
 
 ## 1. Tech Stack & Arsitektur Sistem
 
-REIDIG menggunakan pendekatan **Two-Tier Decoupled Architecture (Modular Core + Dedicated Installment Subsystem)** untuk menjaga integritas data kepemilikan emas tunai tetap terisolasi dari proses penagihan dan pembiayaan cicilan:
+REIDIG menerapkan **Two-Tier Decoupled Architecture (Modular Core + Dedicated Installment Subsystem)** untuk menjaga integritas kepemilikan emas tunai tetap terisolasi dari proses penagihan dan pembiayaan cicilan:
 
-1. **Core REIDIG Service ("Database Beli")**:
+1. **Core REIDIG Service ("Database Beli" — `reidig_core`)**:
    - Mengelola master data SKU, inventori brankas emas fisik (Jakarta & cabang), penerbitan token kepemilikan sah nasabah, dompet rupiah, transaksi beli/jual tunai (*buyback*), dan pemenuhan cetak fisik.
-   - **Database:** PostgreSQL 16 (`reidig_core`).
-2. **Installment Service ("Database Cicil")**:
+   - **Database Produksi:** PostgreSQL 16 (`reidig_core`).
+2. **Installment Service ("Database Cicil" — `reidig_installment`)**:
    - Mengelola pengajuan pembiayaan cicilan nasabah, dokumen akad syariah (*Murabahah*), integrasi agregator pembiayaan pihak ketiga (BPRS / Koperasi Syariah), jadwal angsuran bulanan, dan penagihan berkala.
-   - **Database:** PostgreSQL 16 (`reidig_installment`).
+   - **Database Produksi:** PostgreSQL 16 (`reidig_installment`).
 
 - **Bahasa & Framework:** Python 3.12+, FastAPI, Pydantic v2, SQLAlchemy 2.0, Alembic
-- **Cache & Task Queue:** Redis 7, Celery 5
+- **Cache & Task Queue:** Redis 7, Celery 5 (Worker + Beat Scheduler)
 
-Struktur direktori utama di dalam `app/`:
+Struktur modul utama di dalam `reidig-sys/app/`:
 
 ```text
 app/
-  catalog/        # Master data SKU dan lini produk
-  pricing/        # Tarik harga, riwayat harga, dan penguncian harga (quote)
-  inventory/      # Manajemen keping fisik brankas, penerimaan, QC, opname, jaminan cicilan
-  tokens/         # Siklus hidup token kepemilikan sah dan rantai audit hash
+  core/           # Konfigurasi environment, koneksi DB, helper uang/token, DB triggers, idempotensi
+  catalog/        # Master data SKU dan lini produk emas 24K
+  pricing/        # Tarik harga beli/buyback, riwayat grafik harga (1H/1M/1B/6B/1T), & penguncian harga (quote TTL 60d)
+  inventory/      # Manajemen keping fisik brankas, penerimaan (inbound), QC, opname, & jaminan cicilan
+  tokens/         # Siklus hidup token kepemilikan sah dan rantai audit hash SHA-256
   orders/         # Transaksi jual-beli emas tunai
-  payments/       # Integrasi payment gateway (inbound) dan pencairan dana (outbound)
-  wallet/         # Saldo pengguna, top-up, dan penarikan dana
-  fulfillment/    # Permintaan cetak fisik, pengiriman ekspedisi, dan ambil di cabang
-  financing/      # Integrasi pembiayaan cicilan dengan agregator pihak ketiga
-  identity/       # Profil pengguna, KYC, PIN, dan rekening bank
+  payments/       # Integrasi payment gateway inbound (QRIS / Virtual Account) & disbursement outbound
+  wallet/         # Saldo kas Rupiah pengguna, mutasi dompet, dan penarikan dana ke rekening bank
+  fulfillment/    # Permintaan cetak fisik, pengiriman ekspedisi berasuransi (JNE), dan ambil di cabang
+  financing/      # Integrasi pembiayaan cicilan dengan agregator & lembaga syariah mitra
+  identity/       # Autentikasi, OTP email/HP (WhatsApp/SMS), e-KYC (KTP & Liveness), PIN, dan rekening bank
   ledger/         # Pembukuan akuntansi double-entry internal
   admin/          # Role-Based Access Control (RBAC) dan log audit operasional
-  reconciliation/ # Job pencocokan stok fisik, saldo ledger, dan transaksi eksternal
+  reconciliation/ # Job pencocokan stok fisik, saldo ledger, dan transaksi eksternal (setiap 5 menit)
 ```
 
 ### Konvensi Data (Wajib Dipatuhi)
-Untuk menghindari *bug* pembulatan desimal (*floating-point error*), seluruh nilai uang dan berat disimpan sebagai bilangan bulat:
+Untuk mencegah *floating-point rounding error*, seluruh nilai uang dan berat disimpan sebagai bilangan bulat:
 - **Rupiah:** Gunakan `integer` tanpa desimal. Saat dikirim lewat JSON, bungkus sebagai `string` (contoh: `"1450000"`) agar aman di sisi klien.
-- **Berat Emas:** Gunakan `integer` dalam satuan **miligram** (`0,1 gr = 100`, `1 gr = 1000`, `1 kg = 1000000`). **Dilarang keras memakai `float`.**
-- **Waktu:** Selalu simpan dan kirim dalam zona waktu **UTC** dengan format ISO 8601.
+- **Berat Emas:** Gunakan `integer` dalam satuan **miligram** (`0,1 gr = 100`, `1 gr = 1000`, `1 kg = 1000000`). **Dilarang memakai `float`.**
+- **Waktu:** Simpan dan kirim dalam zona waktu **UTC** dengan format ISO 8601.
 
 ---
 
-## 2. Konsep Inti Domain
+## 2. Panduan Menjalankan & Mengelola Backend (`reidig-sys`)
+
+### 2.1 Persiapan & Menjalankan Server Lokal (Development)
+Secara default, mode pengembangan menggunakan SQLite (`reidig.db`) yang otomatis dibuat dan diisi data awal (*auto-seed*) saat server dinyalakan:
+
+```bash
+cd reidig-sys
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-dev.txt
+
+# Menjalankan FastAPI di port 8000
+uvicorn app.main:app --reload --port 8000
+```
+
+- **Swagger UI:** <http://localhost:8000/docs>
+- **Akses dari Android Emulator:** gunakan base URL `http://10.0.2.2:8000`
+
+### 2.2 Konfigurasi Environment (`.env`)
+Salin `.env.example` menjadi `.env` untuk menyesuaikan konfigurasi staging/produksi:
+
+| Variabel Environment | Default (Dev) | Fungsi |
+|---|---|---|
+| `REIDIG_ENV` | `dev` | Lingkungan aplikasi (`dev`, `staging`, `prod`) |
+| `REIDIG_DATABASE_URL` | `sqlite:///./reidig.db` | Koneksi database utama (`postgresql+psycopg://...` di produksi) |
+| `REIDIG_INSTALLMENT_DATABASE_URL` | *(mengikuti DB utama di dev)* | Koneksi khusus Database Cicil (`reidig_installment`) |
+| `REIDIG_REDIS_URL` | `redis://localhost:6379/0` | Broker & result backend untuk Celery |
+| `REIDIG_JWT_SECRET` | *(dev secret)* | Kunci penandatanganan token sesi JWT |
+| `REIDIG_QUOTE_TTL_SECONDS` | `60` | Masa berlaku kunci harga (*price lock*) dalam detik |
+| `REIDIG_PAYMENT_TTL_SECONDS` | `900` | Batas waktu pembayaran pesanan (15 menit) |
+
+### 2.3 Perintah Operasional, Migrasi, & Pengujian
+
+| Perintah | Kegunaan |
+|---|---|
+| `.venv/bin/python -m pytest` | Menjalankan seluruh pengujian otomatis (invarian, state machine, alur API) |
+| `.venv/bin/alembic upgrade head` | Menerapkan migrasi skema database terbaru ke PostgreSQL/SQLite |
+| `.venv/bin/python -m app.seed` | Mengisi ulang data awal (SKU, stok keping brankas, harga emas, akun demo & staf) |
+| `.venv/bin/celery -A app.worker worker --beat` | Menjalankan worker latar belakang (auto-expire order, rekonsiliasi 5 menit, sweep pencairan) |
+
+---
+
+## 3. Konsep Inti Domain
 
 | Konsep | Penjelasan |
 |---|---|
-| **SKU** | Katalog jenis produk berdasarkan berat dan lini merek. Dikelola oleh tim gudang melalui dashboard operasional. |
-| **Unit Fisik** | Keping emas fisik nyata dengan nomor seri unik (*serial number*). Disimpan terpusat di brankas pusat Jakarta dan dilindungi sistem audit ganda. |
-| **Token Digital** | Bukti kepemilikan digital sah di **Database Beli** yang mengunci tepat **satu Unit fisik**. Token terbit saat pembelian tunai lunas atau saat kontrak cicilan dinyatakan lunas 100% oleh agregator pembiayaan. |
-| **Keping Jaminan Cicilan** | Keping fisik emas di brankas yang statusnya terkunci (`LOCKED_INSTALLMENT`) karena telah dilunasi di awal oleh mitra pembiayaan, menunggu nasabah menyelesaikan seluruh angsuran di **Database Cicil**. |
-| **Agregator & Lembaga Syariah** | Pihak ketiga penyedia dana pembiayaan (BPRS / Koperasi Simpan Pinjam Syariah) yang bekerjasama melalui agregator resmi. Identitas lembaga ini dicantumkan secara legal pada dokumen akad digital, sementara menu aplikasi tetap berkonsep *white-label*. |
-| **Quote** | Harga beli atau jual yang dikunci sementara (memiliki batas waktu/TTL) sebagai acuan transaksi. |
-| **Saldo Dompet** | Dana Rupiah milik pengguna di dalam aplikasi yang selalu dihitung dari mutasi *ledger* double-entry. |
+| **SKU** | Katalog jenis produk berdasarkan berat dan lini merek (`LMRE-01G` s.d. `LMRE-100G`). |
+| **Unit Fisik** | Keping emas fisik nyata dengan nomor seri unik (*serial number*). Disimpan di brankas pusat Jakarta dan dilindungi sistem audit ganda. |
+| **Token Digital** | Bukti kepemilikan digital sah di **Database Beli** yang mengunci tepat **satu Unit fisik**. Terbit saat pembelian tunai lunas atau saat kontrak cicilan dinyatakan lunas 100% oleh agregator pembiayaan. |
+| **Keping Jaminan Cicilan** | Keping fisik emas di brankas berstatus `LOCKED_INSTALLMENT` karena telah dilunasi 100% di awal oleh mitra pembiayaan, menunggu nasabah menyelesaikan seluruh angsuran di **Database Cicil**. |
+| **Agregator & Lembaga Syariah** | Pihak ketiga penyedia pembiayaan (BPRS / Koperasi Syariah) yang bekerja sama melalui agregator resmi. Identitas lembaga ini hanya ditampilkan pada dokumen akad digital (*Murabahah*), sedangkan menu aplikasi tetap *white-label*. |
+| **Quote** | Harga beli atau jual yang dikunci sementara (TTL 60 detik) sebagai acuan transaksi. |
+| **Saldo Kas (Dompet Rupiah)** | Dana Rupiah milik nasabah di dalam aplikasi yang selalu dihitung dari mutasi *ledger* double-entry. |
 
 **Format ID Token:**  
 `RET-<kode SKU>-<10 karakter acak Crockford Base32><1 check digit Luhn mod 32>`  
@@ -61,30 +106,30 @@ Untuk menghindari *bug* pembulatan desimal (*floating-point error*), seluruh nil
 
 ---
 
-## 3. Aturan Emas / Invarian Sistem (Wajib Diuji)
+## 4. Sepuluh Invarian Sistem (Wajib Diuji)
 
-1. **Satu Unit, Maksimal Satu Hak Aktif:** Satu keping fisik hanya boleh memiliki maksimal satu token kepemilikan aktif atau satu jaminan cicilan berjalan (dijaga dengan *partial unique index* di database).
+1. **Satu Unit, Maksimal Satu Hak Aktif:** Satu keping fisik hanya boleh memiliki maksimal satu token kepemilikan aktif atau satu jaminan cicilan berjalan (dijaga dengan *partial unique index* `uq_unit_one_open_token`).
 2. **Keterkaitan 1-ke-1:** Setiap token aktif wajib menunjuk ke tepat satu keping fisik nyata yang sedang dikunci di brankas.
 3. **Kemurnian Stok Tersedia:** Unit berstatus `AVAILABLE` tidak boleh terikat pada token aktif maupun kontrak cicilan mana pun.
 4. **Keseimbangan Stok & Kepemilikan:** Jumlah keping berstatus `ALLOCATED` + `PICKING` + `SHIPPED` + `READY_PICKUP` + `LOCKED_INSTALLMENT` harus selalu sama persis dengan total hak digital dan jaminan cicilan aktif.
-5. **Tanpa Stok Fiktif:** Sistem dilarang menjual stok kosong. Unit baru bisa dijual atau dicicil setelah fisik barang diterima gudang dan lolos verifikasi mutu (QC).
+5. **Tanpa Stok Fiktif:** Sistem dilarang menjual stok kosong. Unit baru bisa dijual atau dicicil setelah fisik barang diterima gudang dan lolos verifikasi mutu (`INBOUND_QC` → `AVAILABLE`).
 6. **Imutabilitas Status Akhir:** Token yang sudah mencapai status final (`RETURNED`, `PRINTED`, `CANCELLED`) tidak bisa diaktifkan kembali.
-7. **Jejak Audit Utuh:** Setiap mutasi status fisik maupun token wajib menghasilkan *event log* yang bersifat *append-only* dengan rantai hash (*audit trail*).
+7. **Jejak Audit Utuh:** Setiap mutasi status fisik maupun token wajib menghasilkan *event log* bersifat *append-only* dengan rantai hash SHA-256.
 8. **Keseimbangan Akuntansi:** Setiap jurnal pembukuan di *ledger* harus selalu berimbang (`Total Debit = Total Kredit`).
 9. **Anti Saldo Minus:** Saldo tersedia (*available balance*) pengguna tidak boleh pernah bernilai negatif (`CHECK (available >= 0)`).
 10. **Kecukupan Dana Pengguna:** Total seluruh saldo pengguna di aplikasi wajib tertutup penuh oleh dana nyata di rekening penampungan (*escrow bank*).
 
 ---
 
-## 4. Siklus Status (State Machine)
+## 5. Siklus Status (State Machine)
 
-### 4.1 Siklus Hidup Token & Kepemilikan (Database Beli)
+### 5.1 Siklus Hidup Token & Kepemilikan (Database Beli)
 
 ```mermaid
 stateDiagram-v2
   [*] --> ACTIVE: Pembelian tunai lunas
   [*] --> ACTIVE: Cicilan lunas 100% (Migrasi dari DB Cicil)
-  ACTIVE --> RETURNED: Dijual kembali / Buyback (dana cair ke saldo)
+  ACTIVE --> RETURNED: Dijual kembali / Buyback (dana cair ke Saldo Kas)
   ACTIVE --> PRINT_PENDING: Nasabah ajukan cetak fisik
   PRINT_PENDING --> ACTIVE: Cetak dibatalkan (sebelum picking)
   PRINT_PENDING --> PRINTED: Emas fisik diterima nasabah
@@ -92,7 +137,7 @@ stateDiagram-v2
   PRINTED --> [*]
 ```
 
-### 4.2 Siklus Hidup Unit Fisik di Brankas
+### 5.2 Siklus Hidup Unit Fisik di Brankas
 
 ```mermaid
 stateDiagram-v2
@@ -117,9 +162,51 @@ stateDiagram-v2
 
 ---
 
-## 5. Desain Skema Database
+## 6. Pemetaan Endpoint API dengan Layar Mobile (Goldin Prototype v1)
 
-### 5.1 Skema Database Beli / Core REIDIG (`reidig_core`)
+Berikut panduan integrasi antara layar aplikasi Android (`android/app/src/main/java/com/reidig/app/ui/`) dan endpoint REST API di `reidig-sys`:
+
+### 6.1 Onboarding, Autentikasi, & Pendaftaran (`01 Landing` – `06 Selesai`)
+| Layar Mobile | Endpoint Backend | Metode | Keterangan |
+|---|---|---|---|
+| `01 Landing` (`WelcomeScreen`) | `/v1/catalog/skus` & `/v1/pricing/current` | `GET` | Mengambil harga beli/jual 1 gr terbaru untuk pil harga *live* dan kalkulator simulasi. |
+| `02 Masuk` (`LoginScreen`) | `/v1/auth/login` | `POST` | Login email & kata sandi, mengembalikan Bearer `access_token` dan profil pengguna. |
+| `03 Buat Akun` (`RegisterEmailScreen`) | `/v1/auth/email-code` | `POST` | Mengirim 6 digit OTP ke email (`purpose: "REGISTER"`). |
+| `04 Verifikasi OTP` (`OtpScreen`) | `/v1/auth/email-code/verify` | `POST` | Memverifikasi 6 digit OTP dan mengembalikan `email_ticket`. |
+| `05 Data Diri` (`RegisterProfileScreen`) | `/v1/auth/register` | `POST` | Mendaftarkan nama lengkap, tanggal lahir (minimal 18 tahun), dan kata sandi. |
+| `Lupa Kata Sandi` (`ForgotPasswordScreen`) | `/v1/auth/password-reset` | `POST` | Mengatur ulang kata sandi menggunakan `email_ticket` (`purpose: "RESET_PASSWORD"`). |
+
+### 6.2 Verifikasi Identitas e-KYC & PIN (`07b Nomor HP` – `12 Selesai e-KYC`)
+| Layar Mobile | Endpoint Backend | Metode | Keterangan |
+|---|---|---|---|
+| `07b Nomor HP` & `Kanal OTP` (`KycPhoneScreen`, `KycChannelScreen`) | `/v1/identity/phone-code` | `POST` | Mengirim kode OTP 6 digit ke nomor `+62...` melalui kanal `WHATSAPP` atau `SMS`. |
+| `Verifikasi OTP HP` (`OtpScreen`) | `/v1/identity/phone-code/verify` | `POST` | Memvalidasi OTP nomor HP nasabah. |
+| `08 Foto e-KTP` & `09 Form Data Diri` (`KycScanIdScreen`, `KycReviewScreen`) | `/v1/identity/kyc/ktp` | `POST` | Mengunggah metadata/foto e-KTP, memeriksa kesesuaian NIK (16 digit), nama, dan tanggal lahir. |
+| `10–11 Verifikasi Wajah` (`KycFaceScanScreen`) | `/v1/identity/kyc/liveness` | `POST` | Menyelesaikan verifikasi *liveness* wajah. |
+| `11b Buat PIN` & `12 Selesai e-KYC` (`KycPinScreen`, `KycVerifiedScreen`) | `/v1/identity/pin` | `POST` | Menyimpan hash PIN 6 digit (menolak PIN lemah seperti `111111`/`123456`) dan mengaktifkan status `verified = true` serta `Wallet ID`. |
+
+### 6.3 Beranda, Tabel Harga, & Transaksi Tunai (`07 Beranda` & `13–16 Transaksi`)
+| Layar Mobile | Endpoint Backend | Metode | Keterangan |
+|---|---|---|---|
+| `07 Beranda` (`HomeScreen`) | `/v1/portfolio/summary`, `/v1/pricing/history` | `GET` | Menampilkan saldo emas (gram), estimasi *buyback*, saldo kas, simulasi beli/jual, dan grafik harga (`1H`, `1M`, `1B`, `6B`, `1T`). |
+| `Tabel Harga Emas` (`PriceTableScreen`) | `/v1/catalog/skus` | `GET` | Daftar harga beli, harga *buyback*, dan stok tersedia seluruh pecahan (`0,1 gr` – `100 gr`). |
+| `14 Konfirmasi Beli` (`BuyScreen`) | `/v1/quotes` → `/v1/orders/buy` | `POST` | Mengunci harga selama **60 detik**, lalu membuat order dengan metode `QRIS`, `VIRTUAL_ACCOUNT` (BCA VA), atau `WALLET` (Saldo Kas). |
+| `15 Menunggu Pembayaran` (`PaymentWaitDialog`) | `/v1/orders/{id}` | `GET` | Memantau status pembayaran QRIS/VA hingga lunas dan token `ACTIVE` diterbitkan. |
+| `Jual Emas / Buyback` (`SellPickerScreen`, `TokenDetailScreen`) | `/v1/orders/sell` | `POST` | Menjual kembali token emas aktif (setelah melewati masa tahan 24 jam) dengan otorisasi PIN; dana langsung masuk ke Saldo Kas. |
+| `Cetak Fisik` (`PrintScreen`) | `/v1/fulfillment/print-orders` | `POST` | Mengajukan cetak fisik via kurir berasuransi (`JNE`) atau ambil di cabang Raja Emas (minimal `5 gr`). |
+
+### 6.4 Dompet, Penarikan Dana, & Cicilan Emas (`20–23 Dompet` & `Cicil Emas`)
+| Layar Mobile | Endpoint Backend | Metode | Keterangan |
+|---|---|---|---|
+| `20 Dompet` (`WalletScreen`) | `/v1/wallet`, `/v1/identity/bank-accounts` | `GET` | Menampilkan kartu *Dompet Emas*, *Dompet Rupiah*, rekening bank utama, dan mutasi terbaru. |
+| `23 Tarik Dana` (`WithdrawScreen`) | `/v1/wallet/withdrawals` | `POST` | Menarik Saldo Kas ke rekening bank terverifikasi dengan otorisasi PIN (mendukung chip cepat `100rb`, `250rb`, `500rb`). |
+| `Simulasi & Akad Cicil Emas` (`InstallmentScreen`, `InstallmentAgreementScreen`) | `/v1/financing/quotes`, `/v1/financing/applications` | `POST` | Menampilkan simulasi DP (`10%`, `20%`, `30%`) & tenor (`3`, `6`, `12` bulan), menyajikan **Akad Murabahah** yang mencantumkan nama mitra **BPRS / Koperasi Syariah**, lalu meneruskan pengajuan ke Database Cicil. |
+
+---
+
+## 7. Desain Skema Dua Database
+
+### 7.1 Skema Database Beli / Core REIDIG (`reidig_core`)
 
 ```sql
 CREATE TABLE skus (
@@ -173,7 +260,7 @@ CREATE TABLE installment_collateral_locks (
 );
 ```
 
-### 5.2 Skema Database Cicil (`reidig_installment`)
+### 7.2 Skema Database Cicil (`reidig_installment`)
 
 ```sql
 CREATE TABLE financing_institutions (
@@ -240,47 +327,23 @@ CREATE TABLE installment_schedules (
 
 ---
 
-## 6. Alur Bisnis Utama
-
-### 6.1 Pembelian Emas Tunai (Buy)
-1. Klien memanggil `POST /v1/quotes` untuk mengunci harga acuan (TTL 60 detik).
-2. Klien memanggil `POST /v1/orders/buy`. Dalam **satu transaksi database**:
-   - Kunci unit fisik `AVAILABLE` dengan `FOR UPDATE SKIP LOCKED`.
-   - Potong saldo atau terbitkan invoice payment gateway (15 menit).
-   - Setelah lunas, unit menjadi `ALLOCATED` dan token digital kepemilikan sah (`ACTIVE`) diterbitkan.
-
-### 6.2 Penjualan Emas Tunai / Buyback (Sell)
-1. Klien meminta quote harga jual.
-2. Memanggil `POST /v1/orders/sell` dengan otorisasi PIN.
-3. Kunci token, ubah status menjadi `RETURNED`, unit fisik kembali `AVAILABLE`, dan dana hasil penjualan masuk ke saldo dompet pengguna secara instan dan atomik.
-
-### 6.2a Manajemen Saldo & Penarikan Dana (Withdrawal)
-1. Klien memanggil `POST /v1/wallet/withdrawals` dengan otorisasi PIN.
-2. Dalam satu transaksi: pastikan saldo mencukupi, pindahkan saldo dari `available` ke `held` (*lock for withdrawal*), dan buat record penarikan dengan status `PROCESSING`.
-3. Instruksi transfer dikirim ke bank rekanan / disbursement gateway.
-4. Jika transfer berhasil: potong saldo `held` dan ubah status menjadi `SUCCESS`.
-5. Jika transfer gagal: kembalikan saldo `held` ke `available` dan tandai `FAILED`.
-6. Jika status tidak jelas (`UNKNOWN`): dana tetap ditahan di `held` hingga staf Finance melakukan verifikasi mutasi rekening koran bank.
-
-### 6.3 Cicilan Emas Melalui Agregator & Lembaga Syariah (BPRS / Koperasi Syariah)
-
-Fitur cicil dirancang dengan prinsip **kemitraan syariah, settlement penuh di muka, dan white-label UI**:
+## 8. Alur Pembiayaan Cicilan Agregator & Migrasi Saat Lunas
 
 ```mermaid
 sequenceDiagram
   autonumber
   actor User as Nasabah
-  participant App as Mobile App
+  participant App as Mobile App (Goldin)
   participant InstEngine as Layanan Cicil (DB Cicil)
   participant Core as Core REIDIG (DB Beli)
   participant Aggregator as Agregator (BPRS/Koperasi)
   participant Escrow as Rekening REIDIG
 
-  User->>App: Pilih SKU emas & tenor cicilan (Menu Cicil Emas)
+  User->>App: Pilih pecahan emas, DP, & tenor (Menu Cicil Emas White-Label)
   App->>InstEngine: Permintaan simulasi angsuran & draf akad
-  InstEngine-->>App: Draf Akad Murabahah (Mencantumkan nama BPRS/Koperasi)
-  User->>App: Setujui & tanda tangan digital akad
-  App->>InstEngine: Submit pengajuan cicilan
+  InstEngine-->>App: Draf Akad Murabahah (Mencantumkan nama BPRS / Koperasi Syariah)
+  User->>App: Setujui klausul akad & otorisasi PIN
+  App->>InstEngine: Submit pengajuan cicilan & bayar DP
   InstEngine->>Aggregator: Teruskan pengajuan & akad
   Aggregator-->>InstEngine: Pengajuan disetujui
   Aggregator->>Escrow: Bayar lunas 100% harga emas di muka
@@ -289,41 +352,26 @@ sequenceDiagram
   Core-->>InstEngine: Unit fisik terkunci jaminan (Serial tercatat)
   loop Setiap Bulan
     User->>Aggregator: Bayar angsuran bulanan
-    Aggregator->>InstEngine: Webhook: Angsuran diterima
+    Aggregator->>InstEngine: Webhook: INSTALLMENT_PAID
   end
   Aggregator->>InstEngine: Webhook: Cicilan LUNAS 100% (PAID_OFF)
   InstEngine->>Core: Release Jaminan -> Terbitkan Token Hak Milik
   Core->>Core: Terbitkan Token ACTIVE di Portofolio Nasabah (DB Beli)
   Core-->>InstEngine: Konfirmasi Token Terbit
-  InstEngine-->>App: Notifikasi: "Selamat! Emas Anda lunas dan aktif di portofolio"
+  InstEngine-->>App: Emas berpindah dari DB Cicil ke Portofolio Aktif (DB Beli)
 ```
 
-1. **Tampilan Menu (*White-Label UI*)**:
-   - Menu di aplikasi mobile tetap bertuliskan **"Cicil Emas"** dengan tampilan bersih dan elegan tanpa logo bank pihak ketiga.
-2. **Akad Pembiayaan Murabahah (*Agreement*)**:
-   - Kemitraan lembaga keuangan syariah mitra (**PT BPRS / Koperasi Simpan Pinjam Syariah**) dan agregator resmi **hanya dicantumkan pada lembar dokumen akad digital**.
-   - Nasabah menyetujui akad pembiayaan jual-beli pesanan (*Murabahah*) secara sadar dan sah.
-3. **Pelunasan Penuh di Muka oleh Agregator (*100% Upfront Settlement*)**:
-   - Saat pengajuan disetujui, pihak ketiga/agregator melunasi harga emas fisik 100% langsung ke rekening penampungan REIDIG.
-   - REIDIG menerima kas penuh sejak hari pertama.
-4. **Jaminan Fisik di Brankas**:
-   - Keping fisik emas di brankas REIDIG di-lock dengan status **`LOCKED_INSTALLMENT`**.
-   - Keping ini dijamin tidak akan dipindahtangankan, dijual, atau dicetak selama masa angsuran.
-5. **Masa Angsuran Nasabah**:
-   - Nasabah membayar angsuran bulanan ke agregator sesuai jadwal di **Database Cicil**.
-   - Pada aplikasi, nasabah memantau progres pembayaran di tab *"Cicilan Berjalan"*.
-6. **Migrasi Hak Milik Saat Lunas (*Transfer to Buy DB*)**:
-   - Begitu angsuran terakhir terverifikasi lunas (`PAID_OFF`), agregator mengirim webhook penyelesaian.
-   - Layanan Cicil memanggil Core API: keping fisik bertransisi menjadi `ALLOCATED` dan **Token Emas Digital Resmi (`ACTIVE`)** diterbitkan di akun nasabah pada **Database Beli**.
-   - Emas resmi masuk ke saldo portofolio emas nasabah dan dapat disimpan, dijual kembali (*buyback*), atau dicetak fisik.
+### Simulasi Webhook di Lingkungan Sandbox
+Untuk menguji alur pelunasan pembayaran maupun perpindahan nasabah dari Database Cicil ke Database Beli secara lokal:
+- **Simulasi Lunas QRIS / Virtual Account:** `POST /v1/dev/payments/{payment_id}/simulate-paid`
+- **Simulasi Status Pencairan Penarikan Dana:** `POST /v1/dev/disbursements/{disbursement_id}/simulate` (`SUCCESS` / `FAILED` / `TIMEOUT`)
+- **Simulasi Webhook Agregator Cicilan:** `POST /v1/dev/financing-partner/simulate` dengan status `INSTALLMENT_PAID`, `OVERDUE`, `PAID_OFF` (otomatis menerbitkan token `ACTIVE` di Database Beli), atau `DEFAULTED`.
 
 ---
 
-## 7. Keamanan & Kepatuhan Audit
+## 9. Keamanan, Idempotensi, & Kepatuhan Audit
 
-1. **Prinsip Imutabilitas (Append-Only):**
-   - Tabel `token_events`, `unit_events`, `wallet_entries`, `ledger_entries`, dan `signed_agreements` dilarang menerima operasi `UPDATE` dan `DELETE`.
-2. **Dual-Control Safeguard:**
-   - Fitur penghentian perdagangan darurat (*kill switch*) memerlukan personel Treasury/Finance yang berbeda untuk mengaktifkan kembali.
-3. **Rekonsiliasi Otomatis (Circuit Breaker):**
-   - Job latar belakang memverifikasi kesesuaian unit fisik di brankas vs token aktif dan saldo dompet vs kas penampungan secara berkala. Jika terjadi anomali, sistem otomatis menghentikan transaksi terkait.
+1. **Header Idempotensi Wajib:** Seluruh request `POST` yang mengubah saldo atau stok wajib menyertakan header `Idempotency-Key` unik untuk mencegah eksekusi ganda saat jaringan tidak stabil.
+2. **Prinsip Imutabilitas (*Append-Only*):** Tabel `token_events`, `unit_events`, `wallet_entries`, `ledger_entries`, dan `signed_agreements` dilindungi trigger database yang menolak operasi `UPDATE` dan `DELETE`.
+3. **Dual-Control Safeguard:** Penghentian perdagangan darurat (*kill switch*) memerlukan persetujuan staf Treasury/Finance yang berbeda untuk diaktifkan kembali.
+4. **Rekonsiliasi Otomatis (*Circuit Breaker*):** Celery Beat menjalankan verifikasi invarian setiap 5 menit (atau manual melalui `POST /v1/admin/reconciliation/run`). Jika ditemukan ketidaksesuaian antara fisik brankas dan token aktif, perdagangan SKU terkait otomatis dihentikan sementara.

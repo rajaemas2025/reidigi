@@ -15,11 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material.icons.outlined.AccountBalanceWallet
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
@@ -34,9 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -50,7 +43,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.reidig.app.R
 import com.reidig.shared.GoldToken
 import com.reidig.shared.InstallmentApplication
 import com.reidig.shared.InstallmentContract
@@ -60,14 +52,14 @@ import com.reidig.shared.PrintOrder
 import com.reidig.shared.gram
 import com.reidig.shared.rupiah
 
-private data class Tab(val route: String, val label: String, val icon: @Composable () -> Painter)
+private data class Tab(val route: String, val label: String, val icon: () -> ImageVector)
 
 private val TABS = listOf(
-    Tab("home", "Beranda") { rememberVectorPainter(Icons.Outlined.Home) },
-    Tab("wallet", "Dompet") { rememberVectorPainter(Icons.Outlined.AccountBalanceWallet) },
-    Tab("catalog", "Transaksi") { rememberVectorPainter(Icons.Filled.SwapHoriz) },
-    Tab("print-tab", "Cetak") { painterResource(R.drawable.ic_nav_gold) },
-    Tab("account", "Profil") { rememberVectorPainter(Icons.Outlined.Person) },
+    Tab("home", "Beranda") { PrototypeIcons.Home },
+    Tab("wallet", "Dompet") { PrototypeIcons.Wallet },
+    Tab("catalog", "Transaksi") { PrototypeIcons.ArrowsExchange },
+    Tab("print-tab", "Cetak") { PrototypeIcons.GoldIngots },
+    Tab("account", "Profil") { PrototypeIcons.User },
 )
 
 /** Tab yang sedang menyala; satu tab bisa berisi dua halaman. */
@@ -83,16 +75,16 @@ private fun ReidigBottomBar(active: String, onSelect: (String) -> Unit) {
     Box(Modifier.fillMaxWidth().background(Palette.Paper)) {
         Row(
             Modifier.fillMaxWidth().padding(top = 24.dp)
-                .shadow(12.dp, RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                .shadow(14.dp, RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
                 .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
                 .background(Color.White)
                 .navigationBarsPadding()
-                .padding(top = 8.dp, bottom = 8.dp, start = 8.dp, end = 8.dp),
+                .padding(top = 8.dp, bottom = 10.dp, start = 12.dp, end = 12.dp),
             verticalAlignment = Alignment.Bottom,
         ) {
             TABS.forEach { tab ->
                 val selected = tab.route == active
-                val tint = if (selected) Palette.Primary else Palette.DisabledText
+                val tint = if (selected) Palette.Primary else Palette.InkSoft
                 Column(
                     Modifier.weight(1f).clickable(role = Role.Tab) { onSelect(tab.route) }.padding(vertical = 4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -100,13 +92,14 @@ private fun ReidigBottomBar(active: String, onSelect: (String) -> Unit) {
                     if (tab.route == "catalog") {
                         Spacer(Modifier.height(26.dp))
                     } else {
-                        Icon(tab.icon(), null, tint = tint, modifier = Modifier.size(22.dp))
+                        Icon(tab.icon(), null, tint = tint, modifier = Modifier.size(24.dp))
                     }
                     Spacer(Modifier.height(4.dp))
                     Text(
                         tab.label,
+                        fontFamily = BodyFontFamily,
                         color = tint,
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
                     )
                 }
@@ -127,7 +120,7 @@ private fun ReidigBottomBar(active: String, onSelect: (String) -> Unit) {
                 .clickable(role = Role.Tab, onClickLabel = center.label) { onSelect(center.route) },
             contentAlignment = Alignment.Center,
         ) {
-            Icon(center.icon(), center.label, tint = Palette.Primary50, modifier = Modifier.size(24.dp))
+            Icon(center.icon(), center.label, tint = Palette.Primary50, modifier = Modifier.size(28.dp))
         }
     }
 }
@@ -153,7 +146,8 @@ fun ReidigApp(repo: MockRepository) {
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
-            NavHost(nav, startDestination = "splash", modifier = Modifier.weight(1f)) {
+            // Sesuai prototipe Goldin v1, aplikasi langsung dimulai pada layar 01 Landing ("welcome").
+            NavHost(nav, startDestination = "welcome", modifier = Modifier.weight(1f)) {
                 composable("splash") {
                     SplashScreen { nav.navigate("welcome") { popUpTo("splash") { inclusive = true } } }
                 }

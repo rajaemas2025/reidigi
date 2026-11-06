@@ -20,11 +20,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.reidig.app.R
 import com.reidig.shared.InstallmentApplication
 import com.reidig.shared.InstallmentContract
 import com.reidig.shared.PaymentMethod
@@ -84,9 +84,9 @@ fun InstallmentAgreementScreen(
         Spacer(Modifier.height(16.dp))
         SurfaceCard {
             AGREEMENT_CLAUSES.forEachIndexed { idx, (title, body) ->
-                Text(title, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Palette.Ink)
+                Text(title, fontFamily = BodyFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Palette.Ink)
                 Spacer(Modifier.height(3.dp))
-                Text(body, color = Palette.InkSecondary, fontSize = 13.sp, lineHeight = 19.sp)
+                Text(body, color = Palette.InkSecondary, fontFamily = BodyFontFamily, fontSize = 13.sp, lineHeight = 19.sp)
                 if (idx < AGREEMENT_CLAUSES.lastIndex) {
                     Spacer(Modifier.height(12.dp))
                 }
@@ -165,27 +165,27 @@ fun DownPaymentScreen(
         SurfaceCard(tint = Palette.WarnSoft, outline = Palette.WarnBorder) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Batas waktu pembayaran DP", color = Palette.Warn, fontSize = 12.5.sp, fontWeight = FontWeight.Medium)
+                    Text("Batas waktu pembayaran DP", color = Palette.Warn, fontFamily = BodyFontFamily, fontSize = 12.5.sp, fontWeight = FontWeight.Medium)
                 }
                 Text(
                     "${secondsLeft / 60}:${(secondsLeft % 60).toString().padStart(2, '0')}",
                     color = Palette.Warn,
-                    fontWeight = FontWeight.Bold,
+                    fontFamily = MonoFontFamily,
+                    fontWeight = FontWeight.SemiBold,
                     fontSize = 14.sp,
-                    fontFamily = FontFamily.Monospace,
                 )
             }
         }
         Spacer(Modifier.height(14.dp))
         SurfaceCard {
-            Text("Uang muka (DP)", color = Palette.InkSoft, fontSize = 12.sp)
+            Text("Uang muka (DP)", color = Palette.InkSoft, fontFamily = BodyFontFamily, fontSize = 12.sp)
             Spacer(Modifier.height(4.dp))
             Text(
                 rupiah(application.downPayment),
-                fontWeight = FontWeight.ExtraBold,
+                fontFamily = MonoFontFamily,
+                fontWeight = FontWeight.SemiBold,
                 fontSize = 26.sp,
                 color = Palette.Primary,
-                fontFamily = FontFamily.Monospace,
             )
             Spacer(Modifier.height(12.dp))
             HorizontalDivider(color = Palette.Line)
@@ -195,11 +195,16 @@ fun DownPaymentScreen(
             SummaryRow("Angsuran per bulan", rupiah(application.monthlyBeforeFees), strong = true)
         }
         Spacer(Modifier.height(18.dp))
-        Text("Metode pembayaran", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Palette.Ink)
+        Text("Metode pembayaran", fontFamily = TitleFontFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Palette.Ink)
         Spacer(Modifier.height(8.dp))
         PaymentMethod.entries.forEach { option ->
             val detail = if (option == PaymentMethod.WALLET) "Tersedia ${rupiah(state.walletBalance)}" else "Konfirmasi otomatis"
-            PaymentOption(option.label, detail, option == method) { method = option }
+            val logoRes = when (option) {
+                PaymentMethod.QRIS -> R.drawable.logo_qris
+                PaymentMethod.VIRTUAL_ACCOUNT -> R.drawable.logo_bca
+                PaymentMethod.WALLET -> null
+            }
+            PaymentOption(option.label, detail, option == method, logoRes = logoRes) { method = option }
             Spacer(Modifier.height(8.dp))
         }
         if (insufficient) ErrorLine("Saldo tidak mencukupi. Pilih metode lain.")
@@ -226,8 +231,8 @@ fun DownPaymentScreen(
     if (confirmCancel) {
         AlertDialog(
             onDismissRequest = { confirmCancel = false },
-            title = { Text("Batalkan pengajuan?", fontWeight = FontWeight.Bold) },
-            text = { Text("Keping yang ditahan akan dilepas kembali.") },
+            title = { Text("Batalkan pengajuan?", fontFamily = TitleFontFamily, fontWeight = FontWeight.Bold) },
+            text = { Text("Keping yang ditahan akan dilepas kembali.", fontFamily = BodyFontFamily) },
             confirmButton = { TextLink("Batalkan", ::cancel, color = Palette.Critical) },
             dismissButton = { TextLink("Lanjut bayar", { confirmCancel = false }) },
         )

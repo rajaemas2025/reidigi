@@ -85,7 +85,7 @@ fun PinDialog(env: AppEnv, title: String, onDismiss: () -> Unit, onVerified: () 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Box(
             Modifier.fillMaxSize()
-                .background(Color(0x8C0F052C))
+                .background(Color(0x660F052C))
                 .clickable(
                     indication = null,
                     interactionSource = remember { MutableInteractionSource() },
@@ -108,12 +108,19 @@ fun PinDialog(env: AppEnv, title: String, onDismiss: () -> Unit, onVerified: () 
             ) {
                 Box(Modifier.width(36.dp).height(4.dp).clip(RoundedCornerShape(50)).background(Palette.Line))
                 Spacer(Modifier.height(18.dp))
-                Text("Masukkan PIN", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Palette.Ink)
+                Text(
+                    "Masukkan PIN",
+                    fontFamily = TitleFontFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = Palette.Ink,
+                )
                 Spacer(Modifier.height(4.dp))
                 Text(
                     title,
+                    fontFamily = BodyFontFamily,
                     color = Palette.InkSecondary,
-                    fontSize = 13.sp,
+                    fontSize = 13.5.sp,
                     textAlign = TextAlign.Center,
                 )
                 Spacer(Modifier.height(20.dp))
@@ -124,6 +131,7 @@ fun PinDialog(env: AppEnv, title: String, onDismiss: () -> Unit, onVerified: () 
                 } else {
                     Text(
                         "Masukkan 6 digit PIN keamananmu",
+                        fontFamily = BodyFontFamily,
                         color = Palette.InkSoft,
                         fontSize = 12.sp,
                     )

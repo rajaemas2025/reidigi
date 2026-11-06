@@ -29,9 +29,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.outlined.Backspace
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.Button
@@ -54,7 +52,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.OffsetMapping
@@ -93,7 +91,7 @@ fun PrimaryButton(
             CircularProgressIndicator(Modifier.size(18.dp), color = Color.White, strokeWidth = 2.dp)
             Spacer(Modifier.width(10.dp))
         }
-        Text(text, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+        Text(text, fontFamily = BodyFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
     }
 }
 
@@ -111,7 +109,7 @@ fun SecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modi
             disabledContentColor = Palette.DisabledText,
         ),
     ) {
-        Text(text, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+        Text(text, fontFamily = BodyFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
     }
 }
 
@@ -129,7 +127,7 @@ fun DestructiveButton(text: String, onClick: () -> Unit, modifier: Modifier = Mo
             disabledContentColor = Palette.Critical.copy(alpha = 0.4f),
         ),
     ) {
-        Text(text, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+        Text(text, fontFamily = BodyFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
     }
 }
 
@@ -147,7 +145,7 @@ fun LightButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier
             disabledContentColor = Color.White.copy(alpha = 0.75f),
         ),
     ) {
-        Text(text, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+        Text(text, fontFamily = BodyFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
     }
 }
 
@@ -161,7 +159,7 @@ fun GhostOnDarkButton(text: String, onClick: () -> Unit, modifier: Modifier = Mo
         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
     ) {
         leading?.invoke()
-        Text(text, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+        Text(text, fontFamily = BodyFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
     }
 }
 
@@ -170,6 +168,7 @@ fun TextLink(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, c
     Text(
         text,
         color = color,
+        fontFamily = BodyFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 14.sp,
         modifier = modifier.clip(RoundedCornerShape(8.dp)).clickable(onClick = onClick).padding(horizontal = 6.dp, vertical = 8.dp),
@@ -193,9 +192,16 @@ fun FormField(
     transformation: VisualTransformation = VisualTransformation.None,
     trailing: (@Composable () -> Unit)? = null,
 ) {
+    val isMono = keyboardType == KeyboardType.Number || keyboardType == KeyboardType.Phone
     Column(modifier.fillMaxWidth()) {
         if (label.isNotEmpty()) {
-            Text(label, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = if (error != null) Palette.Critical else Palette.Ink)
+            Text(
+                label,
+                fontFamily = BodyFontFamily,
+                fontWeight = FontWeight.Medium,
+                fontSize = 14.sp,
+                color = if (error != null) Palette.Critical else Palette.Ink,
+            )
             Spacer(Modifier.height(6.dp))
         }
         OutlinedTextField(
@@ -204,7 +210,20 @@ fun FormField(
             modifier = Modifier.fillMaxWidth(),
             singleLine = singleLine,
             isError = error != null,
-            placeholder = { Text(placeholder, color = Palette.DisabledText, fontSize = 15.sp) },
+            textStyle = TextStyle(
+                fontFamily = if (isMono) MonoFontFamily else BodyFontFamily,
+                fontWeight = if (isMono) FontWeight.Medium else FontWeight.Normal,
+                fontSize = 15.sp,
+                color = Palette.Ink,
+            ),
+            placeholder = {
+                Text(
+                    placeholder,
+                    fontFamily = if (isMono) MonoFontFamily else BodyFontFamily,
+                    color = Palette.DisabledText,
+                    fontSize = 15.sp,
+                )
+            },
             leadingIcon = when {
                 prefix != null -> {
                     {
@@ -212,9 +231,9 @@ fun FormField(
                             Text(
                                 prefix,
                                 color = Palette.InkSecondary,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 14.sp,
-                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 15.sp,
+                                fontFamily = MonoFontFamily,
                             )
                             Spacer(Modifier.width(10.dp))
                             Box(Modifier.width(1.dp).height(22.dp).background(Palette.Line))
@@ -247,7 +266,7 @@ fun FormField(
                 Spacer(Modifier.height(6.dp))
                 ErrorLine(error)
             }
-            hint != null -> Text(hint, color = Palette.InkSoft, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
+            hint != null -> Text(hint, fontFamily = BodyFontFamily, color = Palette.InkSecondary, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
         }
     }
 }
@@ -257,7 +276,7 @@ fun ErrorLine(message: String, modifier: Modifier = Modifier, color: Color = Pal
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         Icon(Icons.Filled.ErrorOutline, null, tint = color, modifier = Modifier.size(14.dp))
         Spacer(Modifier.width(5.dp))
-        Text(message, color = color, fontSize = 12.5.sp)
+        Text(message, fontFamily = BodyFontFamily, color = color, fontSize = 12.5.sp)
     }
 }
 
@@ -268,11 +287,12 @@ fun RuleLine(text: String, met: Boolean) {
             Modifier.size(16.dp).clip(CircleShape).background(if (met) Palette.Good else Palette.Neutral200),
             contentAlignment = Alignment.Center,
         ) {
-            if (met) Icon(Icons.Filled.Check, null, tint = Color.White, modifier = Modifier.size(11.dp))
+            if (met) Icon(PrototypeIcons.Check, null, tint = Color.White, modifier = Modifier.size(11.dp))
         }
         Spacer(Modifier.width(8.dp))
         Text(
             text,
+            fontFamily = BodyFontFamily,
             fontSize = 12.sp,
             fontWeight = if (met) FontWeight.SemiBold else FontWeight.Normal,
             color = if (met) Palette.Good else Palette.InkSoft,
@@ -336,15 +356,16 @@ fun TopTitleBar(
                 Modifier.size(44.dp).clip(CircleShape).clickable(onClick = onBack),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "Kembali", tint = Palette.Ink, modifier = Modifier.size(26.dp))
+                Icon(PrototypeIcons.ChevronLeft, "Kembali", tint = Palette.Ink, modifier = Modifier.size(22.dp))
             }
         } else {
             Spacer(Modifier.size(44.dp))
         }
         Text(
             title,
+            fontFamily = TitleFontFamily,
             fontWeight = FontWeight.Bold,
-            fontSize = 16.sp,
+            fontSize = 18.sp,
             color = Palette.Ink,
             textAlign = TextAlign.Center,
             modifier = Modifier.weight(1f),
@@ -358,7 +379,7 @@ fun TopTitleBar(
                         color = Palette.InkSoft,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
-                        fontFamily = FontFamily.Monospace,
+                        fontFamily = MonoFontFamily,
                     )
                 }
             }
@@ -386,19 +407,21 @@ fun LabeledStepBar(current: Int, labels: List<String>) {
                     contentAlignment = Alignment.Center,
                 ) {
                     if (done) {
-                        Icon(Icons.Filled.Check, null, tint = Color.White, modifier = Modifier.size(12.dp))
+                        Icon(PrototypeIcons.Check, null, tint = Color.White, modifier = Modifier.size(12.dp))
                     } else {
                         Text(
                             "$step",
+                            fontFamily = MonoFontFamily,
                             color = if (active) Color.White else Palette.InkSoft,
                             fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.SemiBold,
                         )
                     }
                 }
                 Spacer(Modifier.width(6.dp))
                 Text(
                     label,
+                    fontFamily = BodyFontFamily,
                     fontSize = 12.sp,
                     fontWeight = if (active) FontWeight.SemiBold else FontWeight.Medium,
                     color = if (done || active) Palette.Primary else Palette.InkSoft,
@@ -453,9 +476,10 @@ fun SegmentSwitch(options: List<String>, selected: Int, inset: Dp = 20.dp, onSel
             ) {
                 Text(
                     label,
+                    fontFamily = BodyFontFamily,
                     color = if (active) Palette.Ink else Palette.InkSecondary,
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 13.5.sp,
+                    fontSize = 14.sp,
                 )
             }
         }
@@ -473,20 +497,37 @@ fun Headline(
     val align = if (centered) TextAlign.Center else TextAlign.Start
     Text(
         title,
-        fontWeight = FontWeight.ExtraBold,
-        fontSize = 24.sp,
-        lineHeight = 30.sp,
+        fontFamily = TitleFontFamily,
+        fontWeight = FontWeight.Black,
+        fontSize = 26.sp,
+        lineHeight = 34.sp,
         color = titleColor,
         textAlign = align,
         modifier = Modifier.fillMaxWidth(),
     )
     if (subtitle != null) {
         Spacer(Modifier.height(6.dp))
-        Text(subtitle, color = Palette.InkSecondary, fontSize = 14.sp, lineHeight = 21.sp, textAlign = align, modifier = Modifier.fillMaxWidth())
+        Text(
+            subtitle,
+            fontFamily = BodyFontFamily,
+            color = Palette.InkSecondary,
+            fontSize = 14.sp,
+            lineHeight = 20.sp,
+            textAlign = align,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
     if (subtitleRich != null) {
         Spacer(Modifier.height(6.dp))
-        Text(subtitleRich, color = Palette.InkSecondary, fontSize = 14.sp, lineHeight = 21.sp, textAlign = align, modifier = Modifier.fillMaxWidth())
+        Text(
+            subtitleRich,
+            fontFamily = BodyFontFamily,
+            color = Palette.InkSecondary,
+            fontSize = 14.sp,
+            lineHeight = 20.sp,
+            textAlign = align,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 
@@ -538,9 +579,9 @@ fun CodeBoxes(
                     char != null -> {
                         Text(
                             char.toString(),
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            fontFamily = MonoFontFamily,
                             color = if (verified) Palette.Good else Palette.Ink,
                         )
                     }
@@ -588,9 +629,9 @@ private fun PadKey(label: String, enabled: Boolean, modifier: Modifier, onClick:
     ) {
         Text(
             label,
-            fontSize = 22.sp,
+            fontSize = 24.sp,
             fontWeight = FontWeight.SemiBold,
-            fontFamily = FontFamily.Monospace,
+            fontFamily = MonoFontFamily,
             color = if (enabled) Palette.Ink else Palette.DisabledText,
         )
     }
@@ -635,7 +676,7 @@ fun HeroPurpleCard(
                 .clip(CircleShape)
                 .background(Palette.Primary600.copy(alpha = 0.5f)),
         )
-        Box(Modifier.fillMaxWidth().padding(22.dp), content = content)
+        Box(Modifier.fillMaxWidth().padding(20.dp), content = content)
     }
 }
 
@@ -657,7 +698,7 @@ fun SurfaceCard(
     }
     val base = modifier.fillMaxWidth().cardDepth(tint, RoundedCornerShape(16.dp), border)
     Column(
-        (if (onClick != null) base.clickable(onClick = onClick) else base).padding(16.dp),
+        (if (onClick != null) base.clickable(onClick = onClick) else base).padding(20.dp),
         content = content,
     )
 }
@@ -680,20 +721,27 @@ fun StatusChip(text: String, tone: ChipTone, icon: ImageVector = Icons.Outlined.
     ) {
         Icon(icon, null, tint = fg, modifier = Modifier.size(13.dp))
         Spacer(Modifier.width(5.dp))
-        Text(text, color = fg, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        Text(text, fontFamily = BodyFontFamily, color = fg, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
 @Composable
 fun SummaryRow(label: String, value: String, strong: Boolean = false, valueColor: Color = Palette.Ink) {
     Row(Modifier.fillMaxWidth().padding(vertical = 5.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, color = if (strong) Palette.Ink else Palette.InkSecondary, fontWeight = if (strong) FontWeight.Bold else FontWeight.Normal, fontSize = if (strong) 14.sp else 13.5.sp, modifier = Modifier.weight(1f))
+        Text(
+            label,
+            fontFamily = BodyFontFamily,
+            color = if (strong) Palette.Ink else Palette.InkSecondary,
+            fontWeight = if (strong) FontWeight.SemiBold else FontWeight.Normal,
+            fontSize = if (strong) 16.sp else 14.sp,
+            modifier = Modifier.weight(1f),
+        )
         Spacer(Modifier.width(12.dp))
         Text(
             value,
-            fontWeight = if (strong) FontWeight.Bold else FontWeight.SemiBold,
-            fontSize = if (strong) 16.sp else 13.5.sp,
-            fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = if (strong) 16.sp else 14.sp,
+            fontFamily = MonoFontFamily,
             color = valueColor,
             textAlign = TextAlign.End,
         )
@@ -702,18 +750,18 @@ fun SummaryRow(label: String, value: String, strong: Boolean = false, valueColor
 
 @Composable
 fun TokenCodeText(code: String, modifier: Modifier = Modifier) {
-    Text(code, fontFamily = FontFamily.Monospace, fontSize = 12.sp, color = Palette.InkSoft, modifier = modifier)
+    Text(code, fontFamily = MonoFontFamily, fontSize = 12.sp, color = Palette.InkSoft, modifier = modifier)
 }
 
 /** Lencana lingkaran ganda (double-ring badge) untuk layar selesai registrasi, e-KYC, dan transaksi. */
 @Composable
-fun DoubleRingSuccessBadge(icon: ImageVector = Icons.Filled.Check) {
+fun DoubleRingSuccessBadge(icon: ImageVector = PrototypeIcons.Check) {
     Box(
         Modifier.size(120.dp).clip(CircleShape).background(Palette.Primary100),
         contentAlignment = Alignment.Center,
     ) {
         Box(
-            Modifier.size(92.dp).clip(CircleShape).background(Palette.Primary)
+            Modifier.size(96.dp).clip(CircleShape).background(Palette.Primary)
                 .border(4.dp, Palette.Primary200, CircleShape),
             contentAlignment = Alignment.Center,
         ) {

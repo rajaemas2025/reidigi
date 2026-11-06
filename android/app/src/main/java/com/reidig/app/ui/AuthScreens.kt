@@ -23,17 +23,6 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.SwapVert
-import androidx.compose.material.icons.outlined.CalendarToday
-import androidx.compose.material.icons.outlined.Email
-import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.PersonOutline
-import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.Shield
-import androidx.compose.material.icons.outlined.Visibility
-import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -60,7 +49,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -91,7 +79,7 @@ fun BrandMark(size: Int = 40) {
 @Composable
 fun SplashScreen(onDone: () -> Unit) {
     LaunchedEffect(Unit) {
-        delay(1000)
+        delay(600)
         onDone()
     }
     Column(
@@ -99,15 +87,26 @@ fun SplashScreen(onDone: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Spacer(Modifier.weight(1f))
-        GoldBarArt(160.dp)
-        Spacer(Modifier.height(24.dp))
+        GoldBarArt(220.dp)
+        Spacer(Modifier.height(20.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            GoldBarsBadge(44.dp, 14.dp)
-            Spacer(Modifier.width(12.dp))
-            Text("REIDIG", color = Palette.Primary, fontWeight = FontWeight.ExtraBold, fontSize = 28.sp)
+            GoldBarsBadge(40.dp, 22.dp)
+            Spacer(Modifier.width(10.dp))
+            Text(
+                "Goldin",
+                color = Palette.Primary,
+                fontFamily = TitleFontFamily,
+                fontWeight = FontWeight.Black,
+                fontSize = 28.sp,
+            )
         }
         Spacer(Modifier.height(6.dp))
-        Text("Tabungan & Cicilan Emas Fisik 24K", color = Palette.InkSecondary, fontSize = 14.sp)
+        Text(
+            "Tabungan & Cicilan Emas Fisik 24K",
+            color = Palette.InkSecondary,
+            fontFamily = BodyFontFamily,
+            fontSize = 14.sp,
+        )
         Spacer(Modifier.weight(1f))
         CircularProgressIndicator(color = Palette.Primary, strokeWidth = 2.5.dp, modifier = Modifier.size(26.dp))
         Spacer(Modifier.height(32.dp))
@@ -130,35 +129,44 @@ fun WelcomeScreen(env: AppEnv, onLogin: () -> Unit, onRegister: () -> Unit) {
         Modifier.fillMaxSize().background(Palette.Paper).statusBarsPadding().navigationBarsPadding(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // Top header: Brand + Live Gold Price Pill
+        // Top header: Brand "Goldin" (Lato Black 22sp) + Live Gold Price Pill (matching 01 Landing lines 632-640)
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 14.dp),
+            Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                GoldBarsBadge(34.dp, 10.dp)
-                Spacer(Modifier.width(8.dp))
-                Text("REIDIG", color = Palette.Primary, fontWeight = FontWeight.ExtraBold, fontSize = 21.sp)
-            }
+            Text(
+                "Goldin",
+                color = Palette.Primary,
+                fontFamily = TitleFontFamily,
+                fontWeight = FontWeight.Black,
+                fontSize = 22.sp,
+                letterSpacing = (-0.3).sp,
+            )
             Row(
                 Modifier.cardDepth(Color.White, RoundedCornerShape(50), Palette.Line)
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                    .padding(horizontal = 10.dp, vertical = 5.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(Modifier.size(7.dp).clip(CircleShape).background(Palette.Mint))
                 Spacer(Modifier.width(6.dp))
-                Text("Emas", color = Palette.InkSecondary, fontSize = 11.5.sp)
+                Text("Emas", color = Palette.InkSecondary, fontFamily = BodyFontFamily, fontSize = 11.5.sp)
                 Spacer(Modifier.width(4.dp))
                 Text(
                     "${rupiah(buyPrice)}/gr",
                     color = Palette.Ink,
-                    fontWeight = FontWeight.Bold,
+                    fontFamily = MonoFontFamily,
+                    fontWeight = FontWeight.SemiBold,
                     fontSize = 11.5.sp,
-                    fontFamily = FontFamily.Monospace,
                 )
                 Spacer(Modifier.width(4.dp))
-                Text("▲ 0,4%", color = Palette.Good, fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
+                Text(
+                    "▲ 0,4%",
+                    color = Palette.Good,
+                    fontFamily = BodyFontFamily,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 11.sp,
+                )
             }
         }
 
@@ -174,90 +182,114 @@ fun WelcomeScreen(env: AppEnv, onLogin: () -> Unit, onRegister: () -> Unit) {
             ) {
                 when (page) {
                     0 -> {
-                        Box(Modifier.height(210.dp), contentAlignment = Alignment.Center) {
-                            GoldBarArt(190.dp)
+                        Box(Modifier.height(250.dp), contentAlignment = Alignment.Center) {
+                            GoldBarArt(260.dp)
                         }
-                        Spacer(Modifier.height(20.dp))
+                        Spacer(Modifier.height(10.dp))
                         Text(
                             "Nabung emas makin praktis, kumpulkan perlahan tanpa beban",
-                            color = Palette.Ink,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 22.sp,
-                            lineHeight = 29.sp,
+                            color = Palette.Primary,
+                            fontFamily = TitleFontFamily,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 24.sp,
+                            lineHeight = 32.sp,
                             textAlign = TextAlign.Center,
                         )
                         Spacer(Modifier.height(8.dp))
                         Text(
                             "Tabung emas 24 karat dari nominal kecil, langsung dari ponsel.",
                             color = Palette.InkSecondary,
+                            fontFamily = BodyFontFamily,
                             fontSize = 14.sp,
-                            lineHeight = 21.sp,
+                            lineHeight = 20.sp,
                             textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 8.dp),
                         )
                     }
                     1 -> {
-                        // Interactive Simulation Card
+                        // Interactive Simulation Card (matching 01 Landing lines 651-677)
                         Column(
                             Modifier.fillMaxWidth()
-                                .cardDepth(Color.White, RoundedCornerShape(16.dp), Palette.Line)
-                                .padding(16.dp),
+                                .cardDepth(Color.White, RoundedCornerShape(20.dp), Palette.Line)
+                                .padding(18.dp),
                         ) {
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Text("Kamu nabung", color = Palette.InkSoft, fontSize = 12.sp)
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text("Kamu nabung", color = Palette.InkSoft, fontFamily = BodyFontFamily, fontSize = 12.sp)
                                 Box(
-                                    Modifier.clip(RoundedCornerShape(50)).background(Palette.Primary50).padding(horizontal = 8.dp, vertical = 2.dp),
+                                    Modifier.clip(RoundedCornerShape(50))
+                                        .background(Palette.Primary50)
+                                        .padding(horizontal = 8.dp, vertical = 2.dp),
                                 ) {
-                                    Text("Simulasi", color = Palette.Primary, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                    Text(
+                                        "Ketuk nominal di bawah",
+                                        color = Palette.Primary,
+                                        fontFamily = BodyFontFamily,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
                                 }
                             }
                             Spacer(Modifier.height(4.dp))
                             Text(
                                 rupiah(simAmount),
-                                color = Palette.Ink,
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 24.sp,
-                                fontFamily = FontFamily.Monospace,
+                                color = Palette.Primary,
+                                fontFamily = TitleFontFamily,
+                                fontWeight = FontWeight.Black,
+                                fontSize = 30.sp,
+                                lineHeight = 38.sp,
                             )
                             Spacer(Modifier.height(10.dp))
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Box(
-                                    Modifier.size(28.dp).clip(CircleShape).background(Palette.Primary50),
+                                    Modifier.size(32.dp).clip(CircleShape).background(Palette.GoldSoft),
                                     contentAlignment = Alignment.Center,
                                 ) {
-                                    Icon(Icons.Filled.SwapVert, null, tint = Palette.Primary, modifier = Modifier.size(16.dp))
+                                    Icon(PrototypeIcons.ArrowsUpDown, null, tint = Palette.GoldDeep, modifier = Modifier.size(16.dp))
                                 }
-                                Spacer(Modifier.width(8.dp))
+                                Spacer(Modifier.width(10.dp))
                                 HorizontalDivider(color = Palette.Line, modifier = Modifier.weight(1f))
                             }
                             Spacer(Modifier.height(10.dp))
-                            Text("Kamu dapat", color = Palette.InkSoft, fontSize = 12.sp)
+                            Text("Kamu dapat", color = Palette.InkSoft, fontFamily = BodyFontFamily, fontSize = 12.sp)
                             val grams = simAmount.toDouble() / buyPrice.toDouble()
                             Row(verticalAlignment = Alignment.Bottom) {
                                 Text(
                                     String.format(Locale.forLanguageTag("id-ID"), "%.4f", grams),
-                                    color = Palette.Primary,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 24.sp,
-                                    fontFamily = FontFamily.Monospace,
+                                    color = Palette.GoldDeep,
+                                    fontFamily = MonoFontFamily,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 26.sp,
                                 )
                                 Spacer(Modifier.width(6.dp))
-                                Text("gram emas 24K", color = Palette.InkSecondary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 3.dp))
+                                Text(
+                                    "gram emas 24K",
+                                    color = Palette.InkSecondary,
+                                    fontFamily = BodyFontFamily,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.padding(bottom = 3.dp),
+                                )
                             }
-                            Spacer(Modifier.height(12.dp))
+                            Spacer(Modifier.height(14.dp))
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                listOf(10_000L to "10rb", 50_000L to "50rb", 100_000L to "100rb", 500_000L to "500rb").forEach { (amt, label) ->
+                                listOf(10_000L to "Rp10rb", 50_000L to "Rp50rb", 100_000L to "Rp100rb", 500_000L to "Rp500rb").forEach { (amt, label) ->
                                     val active = simAmount == amt
                                     Box(
-                                        Modifier.weight(1f).height(32.dp)
+                                        Modifier.weight(1f).height(34.dp)
                                             .clip(RoundedCornerShape(50))
                                             .background(if (active) Palette.Primary else Palette.Paper)
-                                            .border(1.dp, if (active) Palette.Primary else Palette.Line, RoundedCornerShape(50))
+                                            .border(if (active) 1.5.dp else 1.dp, if (active) Palette.Primary else Palette.Line, RoundedCornerShape(50))
                                             .clickable { simAmount = amt },
                                         contentAlignment = Alignment.Center,
                                     ) {
                                         Text(
                                             label,
-                                            color = if (active) Color.White else Palette.InkSecondary,
+                                            color = if (active) Palette.Primary50 else Palette.Ink,
+                                            fontFamily = BodyFontFamily,
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.SemiBold,
                                         )
@@ -265,55 +297,61 @@ fun WelcomeScreen(env: AppEnv, onLogin: () -> Unit, onRegister: () -> Unit) {
                                 }
                             }
                         }
-                        Spacer(Modifier.height(20.dp))
+                        Spacer(Modifier.height(22.dp))
                         Text(
                             "Mulai dari Rp10.000",
-                            color = Palette.Ink,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 22.sp,
+                            color = Palette.Primary,
+                            fontFamily = TitleFontFamily,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 24.sp,
+                            lineHeight = 32.sp,
                             textAlign = TextAlign.Center,
                         )
                         Spacer(Modifier.height(8.dp))
                         Text(
                             "Beli sedikit demi sedikit atau atur sesuai kemampuan. Emas dihitung otomatis ke gram.",
                             color = Palette.InkSecondary,
+                            fontFamily = BodyFontFamily,
                             fontSize = 14.sp,
-                            lineHeight = 21.sp,
+                            lineHeight = 20.sp,
                             textAlign = TextAlign.Center,
                         )
                     }
                     else -> {
-                        // Slide 2: Security & Vault illustration
-                        Box(Modifier.fillMaxWidth().height(210.dp), contentAlignment = Alignment.Center) {
-                            Box(Modifier.size(160.dp).clip(CircleShape).background(Palette.Primary100))
+                        // Slide 2: Security & Vault illustration (matching 01 Landing lines 684-706)
+                        Box(Modifier.fillMaxWidth().height(230.dp), contentAlignment = Alignment.Center) {
+                            Box(Modifier.size(172.dp).clip(CircleShape).background(Palette.Primary50))
                             Box(
-                                Modifier.size(104.dp)
-                                    .shadow(12.dp, RoundedCornerShape(30.dp), ambientColor = Palette.Primary, spotColor = Palette.Primary)
-                                    .clip(RoundedCornerShape(30.dp))
+                                Modifier.size(112.dp)
+                                    .shadow(14.dp, RoundedCornerShape(32.dp), ambientColor = Palette.Primary, spotColor = Palette.Primary)
+                                    .clip(RoundedCornerShape(32.dp))
                                     .background(Palette.Primary),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                Icon(Icons.Outlined.Shield, null, tint = Palette.Gold, modifier = Modifier.size(52.dp))
+                                Icon(PrototypeIcons.ShieldCheck, null, tint = Palette.Gold, modifier = Modifier.size(56.dp))
                             }
                             // Floating badges
-                            SecurityPill("Emas 24 karat", Modifier.align(Alignment.TopStart).padding(top = 12.dp))
-                            SecurityPill("Disimpan di brankas", Modifier.align(Alignment.TopEnd).padding(top = 24.dp))
-                            SecurityPill("Bisa tarik fisik", Modifier.align(Alignment.BottomStart).padding(bottom = 12.dp, start = 12.dp))
+                            SecurityPill("Emas 24 karat", Modifier.align(Alignment.TopStart).padding(top = 14.dp, start = 4.dp))
+                            SecurityPill("Disimpan di brankas", Modifier.align(Alignment.TopEnd).padding(top = 28.dp, end = 4.dp))
+                            SecurityPill("Bisa tarik fisik", Modifier.align(Alignment.BottomStart).padding(bottom = 14.dp, start = 16.dp))
                         }
-                        Spacer(Modifier.height(20.dp))
+                        Spacer(Modifier.height(22.dp))
                         Text(
                             "Aman, tercatat atas namamu",
-                            color = Palette.Ink,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 22.sp,
+                            color = Palette.Primary,
+                            fontFamily = TitleFontFamily,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 24.sp,
+                            lineHeight = 32.sp,
                             textAlign = TextAlign.Center,
                         )
                         Spacer(Modifier.height(8.dp))
                         Text(
                             "Emas fisik tersimpan di brankas mitra berizin dan bisa dicetak kapan saja.",
                             color = Palette.InkSecondary,
+                            fontFamily = BodyFontFamily,
                             fontSize = 14.sp,
-                            lineHeight = 21.sp,
+                            lineHeight = 20.sp,
                             textAlign = TextAlign.Center,
                         )
                     }
@@ -353,11 +391,11 @@ private fun SecurityPill(text: String, modifier: Modifier = Modifier) {
         modifier.cardDepth(Color.White, RoundedCornerShape(50), Palette.Line).padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(16.dp).clip(CircleShape).background(Palette.GoodSoft), contentAlignment = Alignment.Center) {
-            Icon(Icons.Filled.Check, null, tint = Palette.Good, modifier = Modifier.size(11.dp))
+        Box(Modifier.size(18.dp).clip(CircleShape).background(Palette.GoodSoft), contentAlignment = Alignment.Center) {
+            Icon(PrototypeIcons.Check, null, tint = Palette.Good, modifier = Modifier.size(12.dp))
         }
         Spacer(Modifier.width(6.dp))
-        Text(text, fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold, color = Palette.Ink)
+        Text(text, fontFamily = BodyFontFamily, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Palette.Ink)
     }
 }
 
@@ -383,11 +421,11 @@ private fun PasswordField(
         error = error,
         keyboardType = KeyboardType.Password,
         password = !visible,
-        leadingIcon = Icons.Outlined.Lock,
+        leadingIcon = PrototypeIcons.Lock,
         trailing = {
             IconButton(onClick = { visible = !visible }) {
                 Icon(
-                    if (visible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                    if (visible) PrototypeIcons.EyeOff else PrototypeIcons.Eye,
                     contentDescription = if (visible) "Sembunyikan" else "Tampilkan",
                     tint = Palette.InkSoft,
                     modifier = Modifier.size(20.dp),
@@ -428,20 +466,21 @@ fun LoginScreen(
         onBack = onBack,
         bottom = {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                Text("Belum memiliki akun?", color = Palette.InkSecondary, fontSize = 13.5.sp)
+                Text("Belum memiliki akun?", color = Palette.InkSecondary, fontFamily = BodyFontFamily, fontSize = 14.sp)
                 TextLink("Daftar", onRegister)
             }
         },
     ) {
         Text(
             "Halo,\nSelamat datang kembali!",
-            fontWeight = FontWeight.ExtraBold,
-            fontSize = 28.sp,
-            lineHeight = 35.sp,
+            fontFamily = TitleFontFamily,
+            fontWeight = FontWeight.Black,
+            fontSize = 30.sp,
+            lineHeight = 38.sp,
             color = Palette.Primary,
         )
         Spacer(Modifier.height(6.dp))
-        Text("Masuk untuk cek tabungan emasmu hari ini.", color = Palette.InkSecondary, fontSize = 14.sp)
+        Text("Masuk untuk cek tabungan emasmu hari ini.", color = Palette.InkSecondary, fontFamily = BodyFontFamily, fontSize = 14.sp)
         Spacer(Modifier.height(26.dp))
         FormField(
             label = "Email",
@@ -449,7 +488,7 @@ fun LoginScreen(
             onValueChange = { email = it; error = null },
             placeholder = "nama@email.com",
             keyboardType = KeyboardType.Email,
-            leadingIcon = Icons.Outlined.Email,
+            leadingIcon = PrototypeIcons.Mail,
         )
         Spacer(Modifier.height(16.dp))
         PasswordField("Kata sandi", password, { password = it; error = null }, placeholder = "Masukkan kata sandi", error = error)
@@ -461,7 +500,7 @@ fun LoginScreen(
         Spacer(Modifier.height(18.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             HorizontalDivider(Modifier.weight(1f), color = Palette.Line)
-            Text("atau", color = Palette.InkSoft, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 12.dp))
+            Text("atau", color = Palette.InkSoft, fontFamily = BodyFontFamily, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 12.dp))
             HorizontalDivider(Modifier.weight(1f), color = Palette.Line)
         }
         Spacer(Modifier.height(18.dp))
@@ -480,14 +519,22 @@ fun GoogleAccountScreen(onBack: () -> Unit, onSelected: () -> Unit) {
         Spacer(Modifier.height(8.dp))
         Image(painterResource(R.drawable.ic_google), null, Modifier.size(36.dp).align(Alignment.CenterHorizontally))
         Spacer(Modifier.height(18.dp))
-        Text("Pilih akun", fontSize = 24.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        Text(
+            "Pilih akun",
+            fontFamily = TitleFontFamily,
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Black,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
         Spacer(Modifier.height(6.dp))
         Text(
             buildAnnotatedString {
                 append("untuk melanjutkan ke ")
-                withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = Palette.Primary)) { append("REIDIG") }
+                withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = Palette.Primary)) { append("Goldin") }
             },
             color = Palette.InkSecondary,
+            fontFamily = BodyFontFamily,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -498,12 +545,12 @@ fun GoogleAccountScreen(onBack: () -> Unit, onSelected: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(Modifier.size(40.dp).clip(CircleShape).background(Palette.Primary), contentAlignment = Alignment.Center) {
-                    Text("P", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("P", color = Color.White, fontFamily = TitleFontFamily, fontWeight = FontWeight.Bold)
                 }
                 Spacer(Modifier.width(14.dp))
                 Column {
-                    Text("Pengguna", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-                    Text("pengguna@gmail.com", color = Palette.InkSecondary, fontSize = 13.sp)
+                    Text("Pengguna", fontFamily = BodyFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                    Text("pengguna@gmail.com", color = Palette.InkSecondary, fontFamily = BodyFontFamily, fontSize = 13.sp)
                 }
             }
             HorizontalDivider(color = Palette.Line, modifier = Modifier.padding(vertical = 8.dp))
@@ -512,14 +559,20 @@ fun GoogleAccountScreen(onBack: () -> Unit, onSelected: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(Modifier.size(40.dp).clip(CircleShape).border(1.dp, Palette.Line, CircleShape), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Outlined.PersonOutline, null, tint = Palette.InkSecondary)
+                    Icon(PrototypeIcons.User, null, tint = Palette.InkSecondary, modifier = Modifier.size(20.dp))
                 }
                 Spacer(Modifier.width(14.dp))
-                Text("Gunakan akun lain", fontWeight = FontWeight.Medium, fontSize = 15.sp)
+                Text("Gunakan akun lain", fontFamily = BodyFontFamily, fontWeight = FontWeight.Medium, fontSize = 15.sp)
             }
         }
         Spacer(Modifier.height(18.dp))
-        Text("REIDIG menerima nama dan alamat email Anda. Kata sandi Google tidak dibagikan.", color = Palette.InkSoft, fontSize = 12.5.sp, lineHeight = 19.sp)
+        Text(
+            "Aplikasi menerima nama dan alamat email Anda. Kata sandi Google tidak dibagikan.",
+            color = Palette.InkSoft,
+            fontFamily = BodyFontFamily,
+            fontSize = 12.5.sp,
+            lineHeight = 19.sp,
+        )
     }
 }
 
@@ -544,7 +597,7 @@ fun ForgotPasswordScreen(onBack: () -> Unit) {
             { email = it; sent = false },
             placeholder = "nama@email.com",
             keyboardType = KeyboardType.Email,
-            leadingIcon = Icons.Outlined.Email,
+            leadingIcon = PrototypeIcons.Mail,
         )
         if (sent) {
             Spacer(Modifier.height(16.dp))
@@ -570,7 +623,7 @@ fun RegisterEmailScreen(signup: SignupDraft, onBack: () -> Unit, onSent: () -> U
         stepLabels = listOf("Buat akun", "Verifikasi", "Data diri"),
         bottom = {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                Text("Sudah memiliki akun?", color = Palette.InkSecondary, fontSize = 13.5.sp)
+                Text("Sudah memiliki akun?", color = Palette.InkSecondary, fontFamily = BodyFontFamily, fontSize = 14.sp)
                 TextLink("Masuk", onBack)
             }
         },
@@ -588,7 +641,7 @@ fun RegisterEmailScreen(signup: SignupDraft, onBack: () -> Unit, onSent: () -> U
             onValueChange = { email = it; touched = true },
             placeholder = "nama@email.com",
             keyboardType = KeyboardType.Email,
-            leadingIcon = Icons.Outlined.Email,
+            leadingIcon = PrototypeIcons.Mail,
             hint = "Kami akan mengirimkan 6 digit kode OTP ke email ini.",
             error = if (touched && email.isNotEmpty() && !valid) "Format email belum benar. Contoh: nama@email.com" else null,
         )
@@ -612,6 +665,7 @@ fun RegisterEmailScreen(signup: SignupDraft, onBack: () -> Unit, onSent: () -> U
                     append(".")
                 },
                 color = Palette.InkSecondary,
+                fontFamily = BodyFontFamily,
                 fontSize = 12.5.sp,
                 lineHeight = 18.sp,
             )
@@ -621,7 +675,7 @@ fun RegisterEmailScreen(signup: SignupDraft, onBack: () -> Unit, onSent: () -> U
         Spacer(Modifier.height(18.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             HorizontalDivider(Modifier.weight(1f), color = Palette.Line)
-            Text("atau", color = Palette.InkSoft, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 12.dp))
+            Text("atau", color = Palette.InkSoft, fontFamily = BodyFontFamily, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 12.dp))
             HorizontalDivider(Modifier.weight(1f), color = Palette.Line)
         }
         Spacer(Modifier.height(18.dp))
@@ -698,7 +752,7 @@ fun OtpScreen(
             titleColor = Palette.Primary,
             subtitleRich = buildAnnotatedString {
                 append("$sentVia ")
-                withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = Palette.Ink)) { append(target.ifBlank { "nama@email.com" }) }
+                withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = Palette.Ink)) { append(target.ifBlank { "nama@email.com" }) }
             },
         )
         Spacer(Modifier.height(28.dp))
@@ -708,25 +762,32 @@ fun OtpScreen(
             when {
                 verified -> {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.Check, null, tint = Palette.Good, modifier = Modifier.size(16.dp))
+                        Icon(PrototypeIcons.Check, null, tint = Palette.Good, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Kode terverifikasi! Mengalihkan...", color = Palette.Good, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        Text(
+                            "Kode terverifikasi! Mengalihkan...",
+                            color = Palette.Good,
+                            fontFamily = BodyFontFamily,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp,
+                        )
                     }
                 }
-                verifying -> Text("Memverifikasi…", color = Palette.InkSecondary, fontSize = 13.sp)
+                verifying -> Text("Memverifikasi…", color = Palette.InkSecondary, fontFamily = BodyFontFamily, fontSize = 13.sp)
                 error -> ErrorLine("Kode salah (gunakan $demoCode). Coba lagi.")
                 seconds > 0 -> {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.Schedule, null, tint = Palette.InkSoft, modifier = Modifier.size(15.dp))
+                        Icon(PrototypeIcons.HistoryClock, null, tint = Palette.InkSoft, modifier = Modifier.size(15.dp))
                         Spacer(Modifier.width(6.dp))
                         Text(
                             buildAnnotatedString {
                                 append("Kirim ulang kode dalam ")
-                                withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = Palette.Ink, fontFamily = FontFamily.Monospace)) {
+                                withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = Palette.Ink, fontFamily = MonoFontFamily)) {
                                     append("0:${seconds.toString().padStart(2, '0')}")
-                                }
+                                                                }
                             },
                             color = Palette.InkSecondary,
+                            fontFamily = BodyFontFamily,
                             fontSize = 13.sp,
                         )
                     }
@@ -786,7 +847,7 @@ fun RegisterProfileScreen(env: AppEnv, signup: SignupDraft, onBack: () -> Unit, 
         Spacer(Modifier.height(14.dp))
         VerifiedBanner(
             buildAnnotatedString {
-                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(signup.email.ifBlank { "nama@email.com" }) }
+                withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append(signup.email.ifBlank { "nama@email.com" }) }
                 append(" terverifikasi")
             },
         )
@@ -796,7 +857,7 @@ fun RegisterProfileScreen(env: AppEnv, signup: SignupDraft, onBack: () -> Unit, 
             value = name,
             onValueChange = { name = it; nameTouched = true },
             placeholder = "Sesuai KTP",
-            leadingIcon = Icons.Outlined.PersonOutline,
+            leadingIcon = PrototypeIcons.User,
             hint = "Sesuai KTP.",
             error = if (nameTouched && !nameValid) "Masukkan nama lengkap." else null,
         )
@@ -807,7 +868,7 @@ fun RegisterProfileScreen(env: AppEnv, signup: SignupDraft, onBack: () -> Unit, 
             onValueChange = { dobDigits = it.filter { c -> c.isDigit() }.take(8) },
             placeholder = "HH/BB/TTTT",
             keyboardType = KeyboardType.Number,
-            leadingIcon = Icons.Outlined.CalendarToday,
+            leadingIcon = PrototypeIcons.Calendar,
             transformation = DateTransformation,
             hint = "Sesuai KTP. Usia minimal 18 tahun.",
             error = if (dob.length == 10 && !dobValid) "Tanggal tidak valid atau usia di bawah 18 tahun." else null,
@@ -848,7 +909,8 @@ fun RegisterDoneScreen(env: AppEnv, signup: SignupDraft, onStart: () -> Unit) {
         Text(
             "Selamat datang, $firstName!",
             color = Palette.Primary,
-            fontWeight = FontWeight.ExtraBold,
+            fontFamily = TitleFontFamily,
+            fontWeight = FontWeight.Black,
             fontSize = 26.sp,
             textAlign = TextAlign.Center,
         )
@@ -856,6 +918,7 @@ fun RegisterDoneScreen(env: AppEnv, signup: SignupDraft, onStart: () -> Unit) {
         Text(
             "Akunmu sudah aktif. Yuk mulai perjalanan nabung emasmu sekarang.",
             color = Palette.InkSecondary,
+            fontFamily = BodyFontFamily,
             fontSize = 14.sp,
             lineHeight = 21.sp,
             textAlign = TextAlign.Center,
@@ -869,32 +932,32 @@ fun RegisterDoneScreen(env: AppEnv, signup: SignupDraft, onStart: () -> Unit) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("Tabungan Emas", color = Palette.Primary200, fontSize = 12.sp)
+                    Text("Tabungan Emas", color = Palette.Primary200, fontFamily = BodyFontFamily, fontSize = 12.sp)
                     Box(
                         Modifier.clip(RoundedCornerShape(50)).background(Palette.GoldSoft).padding(horizontal = 10.dp, vertical = 3.dp),
                     ) {
-                        Text("Siap diisi", color = Palette.GoldDeep, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Siap diisi", color = Palette.GoldDeep, fontFamily = BodyFontFamily, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
                 Spacer(Modifier.height(8.dp))
                 Text(
                     "0,0000 gr",
                     color = Palette.Gold,
-                    fontWeight = FontWeight.ExtraBold,
+                    fontFamily = MonoFontFamily,
+                    fontWeight = FontWeight.SemiBold,
                     fontSize = 24.sp,
-                    fontFamily = FontFamily.Monospace,
                 )
                 Spacer(Modifier.height(10.dp))
                 HorizontalDivider(color = Color.White.copy(alpha = 0.12f))
                 Spacer(Modifier.height(10.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Harga beli hari ini", color = Palette.Primary200, fontSize = 12.sp)
+                    Text("Harga beli hari ini", color = Palette.Primary200, fontFamily = BodyFontFamily, fontSize = 12.sp)
                     Text(
                         "${rupiah(buyPrice)}/gr",
                         color = Color.White,
-                        fontWeight = FontWeight.Bold,
+                        fontFamily = MonoFontFamily,
+                        fontWeight = FontWeight.SemiBold,
                         fontSize = 12.sp,
-                        fontFamily = FontFamily.Monospace,
                     )
                 }
             }

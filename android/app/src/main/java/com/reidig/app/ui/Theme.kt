@@ -3,11 +3,42 @@ package com.reidig.app.ui
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
+import androidx.compose.material3.Typography
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.reidig.app.R
+
+/** Font keluarga dari prototipe Goldin v1: Lato (--font-title), Geist (--font-body), Geist Mono (--font-mono). */
+val TitleFontFamily = FontFamily(
+    Font(R.font.lato_bold, FontWeight.SemiBold),
+    Font(R.font.lato_bold, FontWeight.Bold),
+    Font(R.font.lato_black, FontWeight.ExtraBold),
+    Font(R.font.lato_black, FontWeight.Black),
+)
+
+val BodyFontFamily = FontFamily(
+    Font(R.font.geist_regular, FontWeight.Normal),
+    Font(R.font.geist_medium, FontWeight.Medium),
+    Font(R.font.geist_semibold, FontWeight.SemiBold),
+    Font(R.font.geist_semibold, FontWeight.Bold),
+    Font(R.font.lato_black, FontWeight.ExtraBold),
+)
+
+val MonoFontFamily = FontFamily(
+    Font(R.font.geist_mono_medium, FontWeight.Normal),
+    Font(R.font.geist_mono_medium, FontWeight.Medium),
+    Font(R.font.geist_mono_semibold, FontWeight.SemiBold),
+    Font(R.font.geist_mono_semibold, FontWeight.Bold),
+    Font(R.font.geist_mono_semibold, FontWeight.ExtraBold),
+)
 
 /** Token warna dari EmDig / Goldin Design System (tokens.json). */
 object Palette {
@@ -75,6 +106,24 @@ object Palette {
 
 val NightGradient = Brush.verticalGradient(listOf(Palette.Primary, Palette.Primary800))
 
+private val ReidigTypography = Typography(
+    displayLarge = TextStyle(fontFamily = TitleFontFamily, fontWeight = FontWeight.Black, fontSize = 36.sp, lineHeight = 44.sp),
+    displayMedium = TextStyle(fontFamily = TitleFontFamily, fontWeight = FontWeight.Black, fontSize = 30.sp, lineHeight = 40.sp),
+    displaySmall = TextStyle(fontFamily = TitleFontFamily, fontWeight = FontWeight.Black, fontSize = 24.sp, lineHeight = 32.sp),
+    headlineLarge = TextStyle(fontFamily = TitleFontFamily, fontWeight = FontWeight.Black, fontSize = 28.sp, lineHeight = 36.sp),
+    headlineMedium = TextStyle(fontFamily = TitleFontFamily, fontWeight = FontWeight.Black, fontSize = 24.sp, lineHeight = 32.sp),
+    headlineSmall = TextStyle(fontFamily = TitleFontFamily, fontWeight = FontWeight.Bold, fontSize = 20.sp, lineHeight = 28.sp),
+    titleLarge = TextStyle(fontFamily = TitleFontFamily, fontWeight = FontWeight.Bold, fontSize = 18.sp, lineHeight = 26.sp),
+    titleMedium = TextStyle(fontFamily = BodyFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, lineHeight = 24.sp),
+    titleSmall = TextStyle(fontFamily = BodyFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 20.sp),
+    bodyLarge = TextStyle(fontFamily = BodyFontFamily, fontWeight = FontWeight.Normal, fontSize = 16.sp, lineHeight = 24.sp),
+    bodyMedium = TextStyle(fontFamily = BodyFontFamily, fontWeight = FontWeight.Normal, fontSize = 14.sp, lineHeight = 20.sp),
+    bodySmall = TextStyle(fontFamily = BodyFontFamily, fontWeight = FontWeight.Normal, fontSize = 12.sp, lineHeight = 18.sp),
+    labelLarge = TextStyle(fontFamily = BodyFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, lineHeight = 24.sp),
+    labelMedium = TextStyle(fontFamily = BodyFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 20.sp),
+    labelSmall = TextStyle(fontFamily = BodyFontFamily, fontWeight = FontWeight.Medium, fontSize = 12.sp, lineHeight = 18.sp),
+)
+
 @Composable
 fun ReidigTheme(content: @Composable () -> Unit) {
     MaterialTheme(
@@ -88,6 +137,7 @@ fun ReidigTheme(content: @Composable () -> Unit) {
             onBackground = Palette.Ink,
             error = Palette.Critical,
         ),
+        typography = ReidigTypography,
         shapes = Shapes(
             small = RoundedCornerShape(12.dp),
             medium = RoundedCornerShape(16.dp),

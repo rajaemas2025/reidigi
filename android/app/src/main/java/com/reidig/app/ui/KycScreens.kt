@@ -43,14 +43,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Sms
-import androidx.compose.material.icons.outlined.CenterFocusStrong
-import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -83,8 +75,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -95,6 +87,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.reidig.app.R
 import com.reidig.shared.MockRepository
 import com.reidig.shared.Rules
 import kotlinx.coroutines.delay
@@ -116,19 +109,36 @@ fun KycConsentScreen(onBack: () -> Unit, onNext: () -> Unit) {
             PrimaryButton("Setuju & mulai verifikasi", onNext, enabled = terms && data)
             if (!(terms && data)) {
                 Spacer(Modifier.height(8.dp))
-                Text("Centang dua pernyataan wajib untuk lanjut.", color = Palette.InkSoft, fontSize = 12.5.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                Text(
+                    "Centang dua pernyataan wajib untuk lanjut.",
+                    color = Palette.InkSoft,
+                    fontFamily = BodyFontFamily,
+                    fontSize = 12.5.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         },
     ) {
         HeroPurpleCard(shape = RoundedCornerShape(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(Color.White.copy(alpha = 0.14f)), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Outlined.Shield, null, tint = Palette.Gold)
+                Box(
+                    Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(Color.White.copy(alpha = 0.14f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(PrototypeIcons.IdBadge, null, tint = Palette.Gold, modifier = Modifier.size(22.dp))
                 }
                 Spacer(Modifier.width(12.dp))
                 Column {
-                    Text("Verifikasi sekali untuk mulai membeli emas", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.5.sp, lineHeight = 20.sp)
-                    Text("Cukup sekitar 2 menit", color = Palette.Primary200, fontSize = 12.5.sp)
+                    Text(
+                        "Verifikasi sekali untuk mulai membeli emas",
+                        color = Color.White,
+                        fontFamily = BodyFontFamily,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.5.sp,
+                        lineHeight = 20.sp,
+                    )
+                    Text("Cukup sekitar 2 menit", color = Palette.Primary200, fontFamily = BodyFontFamily, fontSize = 12.5.sp)
                 }
             }
         }
@@ -154,9 +164,9 @@ private fun KycConsentPreview() = ReidigTheme { KycConsentScreen({}, {}) }
 
 @Composable
 private fun PolicyItem(title: String, body: String, isLast: Boolean = false) {
-    Text(title, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Palette.Ink)
+    Text(title, fontFamily = BodyFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Palette.Ink)
     Spacer(Modifier.height(3.dp))
-    Text(body, color = Palette.InkSecondary, fontSize = 13.sp, lineHeight = 19.sp)
+    Text(body, color = Palette.InkSecondary, fontFamily = BodyFontFamily, fontSize = 13.sp, lineHeight = 19.sp)
     if (!isLast) Spacer(Modifier.height(12.dp))
 }
 
@@ -174,7 +184,7 @@ internal fun ConsentRow(text: String, checked: Boolean, onChange: (Boolean) -> U
     ) {
         Checkbox(checked, null, colors = CheckboxDefaults.colors(checkedColor = Palette.Primary, uncheckedColor = Palette.Line))
         Spacer(Modifier.width(10.dp))
-        Text(text, fontSize = 13.5.sp, lineHeight = 19.sp, color = Palette.Ink)
+        Text(text, fontFamily = BodyFontFamily, fontSize = 13.5.sp, lineHeight = 19.sp, color = Palette.Ink)
     }
 }
 
@@ -207,9 +217,9 @@ fun KycPhoneScreen(kyc: KycDraft, onBack: () -> Unit, onNext: () -> Unit) {
         )
         Spacer(Modifier.height(14.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Outlined.Lock, null, tint = Palette.InkSoft, modifier = Modifier.size(15.dp))
+            Icon(PrototypeIcons.Lock, null, tint = Palette.InkSoft, modifier = Modifier.size(15.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Data Anda dienkripsi saat dikirim.", color = Palette.InkSoft, fontSize = 12.5.sp)
+            Text("Data Anda dienkripsi saat dikirim.", color = Palette.InkSoft, fontFamily = BodyFontFamily, fontSize = 12.5.sp)
         }
     }
 }
@@ -230,9 +240,23 @@ fun KycChannelScreen(kyc: KycDraft, onBack: () -> Unit, onNext: () -> Unit) {
     ) {
         Headline("Kirim OTP lewat", "Ke nomor +62 ${kyc.phone}", titleColor = Palette.Primary)
         Spacer(Modifier.height(22.dp))
-        ChannelCard("WhatsApp", "Direkomendasikan · lebih cepat", Icons.AutoMirrored.Filled.Chat, Color(0xFF16A34A), channel == "WhatsApp") { channel = "WhatsApp" }
+        ChannelCard(
+            title = "WhatsApp",
+            subtitle = "Direkomendasikan · lebih cepat",
+            drawableRes = R.drawable.ic_whatsapp,
+            icon = null,
+            tint = Color(0xFFDCFCE7),
+            selected = channel == "WhatsApp",
+        ) { channel = "WhatsApp" }
         Spacer(Modifier.height(12.dp))
-        ChannelCard("SMS", "Pulsa reguler operator", Icons.Filled.Sms, Palette.Primary, channel == "SMS") { channel = "SMS" }
+        ChannelCard(
+            title = "SMS",
+            subtitle = "Pulsa reguler operator",
+            drawableRes = null,
+            icon = PrototypeIcons.SmsMessage,
+            tint = Palette.Primary,
+            selected = channel == "SMS",
+        ) { channel = "SMS" }
     }
 }
 
@@ -241,7 +265,15 @@ fun KycChannelScreen(kyc: KycDraft, onBack: () -> Unit, onNext: () -> Unit) {
 private fun KycChannelPreview() = ReidigTheme { KycChannelScreen(previewKyc(), {}, {}) }
 
 @Composable
-private fun ChannelCard(title: String, subtitle: String, icon: ImageVector, tint: Color, selected: Boolean, onClick: () -> Unit) {
+private fun ChannelCard(
+    title: String,
+    subtitle: String,
+    drawableRes: Int?,
+    icon: ImageVector?,
+    tint: Color,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
     val shape = RoundedCornerShape(16.dp)
     Row(
         Modifier.fillMaxWidth()
@@ -252,18 +284,29 @@ private fun ChannelCard(title: String, subtitle: String, icon: ImageVector, tint
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(tint), contentAlignment = Alignment.Center) {
-            Icon(icon, null, tint = Color.White)
+        Box(
+            Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(tint),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (drawableRes != null) {
+                Image(
+                    painterResource(drawableRes),
+                    contentDescription = title,
+                    modifier = Modifier.size(26.dp),
+                )
+            } else if (icon != null) {
+                Icon(icon, null, tint = Color.White, modifier = Modifier.size(22.dp))
+            }
         }
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Palette.Ink)
-            Text(subtitle, color = Palette.InkSecondary, fontSize = 12.5.sp)
+            Text(title, fontFamily = BodyFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Palette.Ink)
+            Text(subtitle, color = Palette.InkSecondary, fontFamily = BodyFontFamily, fontSize = 12.5.sp)
         }
         Spacer(Modifier.width(8.dp))
         if (selected) {
             Box(Modifier.size(22.dp).clip(CircleShape).background(Palette.Primary), contentAlignment = Alignment.Center) {
-                Icon(Icons.Filled.Check, null, tint = Color.White, modifier = Modifier.size(14.dp))
+                Icon(PrototypeIcons.Check, null, tint = Color.White, modifier = Modifier.size(13.dp))
             }
         } else {
             Box(Modifier.size(22.dp).border(1.5.dp, Palette.Line, CircleShape))
@@ -320,6 +363,7 @@ private fun CameraPermissionGate(title: String, request: String, onBack: () -> U
             Text(
                 "Kamera hanya dipakai untuk verifikasi identitas.",
                 color = Color.White,
+                fontFamily = BodyFontFamily,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.weight(1f))
@@ -404,7 +448,7 @@ private fun KtpCamera(onBack: () -> Unit, onCaptured: () -> Unit) {
             )
         }
         Spacer(Modifier.height(12.dp))
-        Text("Ketuk tombol untuk ambil foto", color = Color.White.copy(alpha = 0.7f), fontSize = 13.sp, textAlign = TextAlign.Center)
+        Text("Ketuk tombol untuk ambil foto", color = Color.White.copy(alpha = 0.7f), fontFamily = BodyFontFamily, fontSize = 13.sp, textAlign = TextAlign.Center)
     }
 }
 
@@ -482,7 +526,7 @@ private fun IdFrame(stage: ScanStage) {
 @Composable
 private fun SuccessBadge() {
     Box(Modifier.size(58.dp).clip(CircleShape).background(Palette.Mint), contentAlignment = Alignment.Center) {
-        Icon(Icons.Filled.Check, "Berhasil", tint = Color.White, modifier = Modifier.size(32.dp))
+        Icon(PrototypeIcons.Check, "Berhasil", tint = Color.White, modifier = Modifier.size(30.dp))
     }
 }
 
@@ -494,14 +538,22 @@ private fun CameraScaffold(title: String, onBack: () -> Unit, message: String, c
     ) {
         Box(Modifier.fillMaxWidth()) {
             IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Kembali", tint = Color.White)
+                Icon(PrototypeIcons.ChevronLeft, "Kembali", tint = Color.White)
             }
-            Text(title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp, modifier = Modifier.align(Alignment.Center))
+            Text(
+                title,
+                color = Color.White,
+                fontFamily = TitleFontFamily,
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                modifier = Modifier.align(Alignment.Center),
+            )
         }
         Spacer(Modifier.height(14.dp))
         Text(
             message,
             color = Color.White,
+            fontFamily = BodyFontFamily,
             fontSize = 13.5.sp,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color.White.copy(alpha = 0.1f)).padding(12.dp),
@@ -517,6 +569,7 @@ private fun CameraTip(text: String) {
     Text(
         text,
         color = Color.White,
+        fontFamily = BodyFontFamily,
         fontSize = 11.5.sp,
         modifier = Modifier.clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.14f)).padding(horizontal = 10.dp, vertical = 6.dp),
     )
@@ -571,12 +624,12 @@ fun KycReviewScreen(signup: SignupDraft, kyc: KycDraft, onBack: () -> Unit, onRe
                     Modifier.width(56.dp).height(38.dp).clip(RoundedCornerShape(8.dp)).background(Palette.Primary),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text("e-KTP", color = Palette.Gold, fontWeight = FontWeight.Bold, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+                    Text("e-KTP", color = Palette.Gold, fontFamily = MonoFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
                 }
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Foto e-KTP", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Palette.Ink)
-                    Text("✓ Data terbaca", color = Palette.Good, fontWeight = FontWeight.SemiBold, fontSize = 11.5.sp)
+                    Text("Foto e-KTP", fontFamily = BodyFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Palette.Ink)
+                    Text("✓ Data terbaca", color = Palette.Good, fontFamily = BodyFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 11.5.sp)
                 }
                 OutlinedButton(
                     onClick = onRescan,
@@ -585,7 +638,7 @@ fun KycReviewScreen(signup: SignupDraft, kyc: KycDraft, onBack: () -> Unit, onRe
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                     modifier = Modifier.height(32.dp),
                 ) {
-                    Text("Foto ulang", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Palette.Primary)
+                    Text("Foto ulang", fontFamily = BodyFontFamily, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Palette.Primary)
                 }
             }
         }
@@ -594,7 +647,7 @@ fun KycReviewScreen(signup: SignupDraft, kyc: KycDraft, onBack: () -> Unit, onRe
         if (mismatch) {
             StatusChip("KTP tidak cocok dengan akun Anda", ChipTone.CRITICAL)
             Spacer(Modifier.height(6.dp))
-            Text("Nama dan tanggal lahir harus sama dengan saat mendaftar.", color = Palette.InkSoft, fontSize = 12.5.sp)
+            Text("Nama dan tanggal lahir harus sama dengan saat mendaftar.", color = Palette.InkSoft, fontFamily = BodyFontFamily, fontSize = 12.5.sp)
             Spacer(Modifier.height(8.dp))
         } else {
             StatusChip("Cocok dengan data akun", ChipTone.GOOD)
@@ -645,7 +698,7 @@ fun KycLivenessIntroScreen(onBack: () -> Unit, onStart: () -> Unit) {
                     .background(Palette.Primary),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Outlined.CenterFocusStrong, null, tint = Palette.Gold, modifier = Modifier.size(48.dp))
+                Icon(PrototypeIcons.FaceId, null, tint = Palette.Gold, modifier = Modifier.size(48.dp))
             }
         }
         Spacer(Modifier.height(16.dp))
@@ -668,10 +721,10 @@ fun KycLivenessIntroScreen(onBack: () -> Unit, onStart: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Box(Modifier.size(28.dp).clip(CircleShape).background(Palette.Primary50), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Filled.Check, null, tint = Palette.Primary, modifier = Modifier.size(14.dp))
+                        Icon(PrototypeIcons.Check, null, tint = Palette.Primary, modifier = Modifier.size(14.dp))
                     }
                     Spacer(Modifier.width(12.dp))
-                    Text(tip, fontSize = 13.sp, color = Palette.InkSecondary)
+                    Text(tip, fontFamily = BodyFontFamily, fontSize = 13.sp, color = Palette.InkSecondary)
                 }
                 if (i < tips.lastIndex) {
                     HorizontalDivider(color = Palette.Line.copy(alpha = 0.6f))
@@ -792,6 +845,7 @@ fun KycPinScreen(env: AppEnv, kyc: KycDraft, onBack: () -> Unit, onDone: () -> U
             Text(
                 "Hindari tanggal lahir atau angka berulang (misal 111111).",
                 color = Palette.InkSoft,
+                fontFamily = BodyFontFamily,
                 fontSize = 12.sp,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
@@ -812,12 +866,13 @@ fun KycVerifiedScreen(onDone: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Spacer(Modifier.weight(1f))
-        DoubleRingSuccessBadge(Icons.Outlined.Shield)
+        DoubleRingSuccessBadge(PrototypeIcons.ShieldCheck)
         Spacer(Modifier.height(24.dp))
         Text(
             "Verifikasi berhasil!",
             color = Palette.Primary,
-            fontWeight = FontWeight.ExtraBold,
+            fontFamily = TitleFontFamily,
+            fontWeight = FontWeight.Black,
             fontSize = 26.sp,
             textAlign = TextAlign.Center,
         )
@@ -825,6 +880,7 @@ fun KycVerifiedScreen(onDone: () -> Unit) {
         Text(
             "Identitasmu sudah terverifikasi dan akun dilindungi PIN. Sekarang kamu bisa transaksi emas penuh.",
             color = Palette.InkSecondary,
+            fontFamily = BodyFontFamily,
             fontSize = 14.sp,
             lineHeight = 21.sp,
             textAlign = TextAlign.Center,
@@ -838,20 +894,20 @@ fun KycVerifiedScreen(onDone: () -> Unit) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("Wallet ID", color = Palette.Primary200, fontSize = 12.sp)
+                    Text("Wallet ID", color = Palette.Primary200, fontFamily = BodyFontFamily, fontSize = 12.sp)
                     Box(
                         Modifier.clip(RoundedCornerShape(50)).background(Palette.GoldSoft).padding(horizontal = 10.dp, vertical = 3.dp),
                     ) {
-                        Text("Terenkripsi", color = Palette.GoldDeep, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Terenkripsi", color = Palette.GoldDeep, fontFamily = BodyFontFamily, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
                 Spacer(Modifier.height(6.dp))
                 Text(
                     "GLD-8829-4410-24K",
                     color = Palette.Gold,
-                    fontWeight = FontWeight.Bold,
+                    fontFamily = MonoFontFamily,
+                    fontWeight = FontWeight.SemiBold,
                     fontSize = 15.sp,
-                    fontFamily = FontFamily.Monospace,
                     letterSpacing = 0.5.sp,
                 )
             }

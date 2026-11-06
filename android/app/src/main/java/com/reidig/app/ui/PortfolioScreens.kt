@@ -19,9 +19,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Inventory2
-import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
@@ -38,7 +35,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
@@ -59,9 +55,9 @@ private fun TokenStatusChip(token: GoldToken, now: Long) {
     when (token.status) {
         TokenStatus.ACTIVE ->
             if (Rules.canSellAt(token, now)) StatusChip("Aktif", ChipTone.GOOD)
-            else StatusChip("Masa tahan 24 jam", ChipTone.GOLD, Icons.Outlined.Lock)
-        TokenStatus.LOCKED_INSTALLMENT -> StatusChip("Terkunci cicilan", ChipTone.WARN, Icons.Outlined.Lock)
-        TokenStatus.PRINT_PENDING -> StatusChip("Sedang dicetak", ChipTone.NEUTRAL, Icons.Outlined.Inventory2)
+            else StatusChip("Masa tahan 24 jam", ChipTone.GOLD, PrototypeIcons.Lock)
+        TokenStatus.LOCKED_INSTALLMENT -> StatusChip("Terkunci cicilan", ChipTone.WARN, PrototypeIcons.Lock)
+        TokenStatus.PRINT_PENDING -> StatusChip("Sedang dicetak", ChipTone.NEUTRAL, PrototypeIcons.GoldIngots)
         else -> StatusChip("Selesai", ChipTone.NEUTRAL)
     }
 }
@@ -80,21 +76,21 @@ fun PortfolioScreen(env: AppEnv, onToken: (String) -> Unit, onPrint: () -> Unit,
             item {
                 HeroPurpleCard(shape = RoundedCornerShape(20.dp)) {
                     Column(Modifier.fillMaxWidth()) {
-                        Text("Total emas lunas", color = Palette.Primary100, fontSize = 12.5.sp)
+                        Text("Total emas lunas", color = Palette.Primary100, fontFamily = BodyFontFamily, fontSize = 12.5.sp)
                         Spacer(Modifier.height(4.dp))
                         Text(
                             gram(state.totalWeightMg),
                             color = Palette.Gold,
-                            fontWeight = FontWeight.ExtraBold,
+                            fontFamily = MonoFontFamily,
+                            fontWeight = FontWeight.SemiBold,
                             fontSize = 28.sp,
-                            fontFamily = FontFamily.Monospace,
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
                             "Nilai buyback ≈ ${rupiah(state.portfolioValue)}",
                             color = Palette.Primary100,
+                            fontFamily = MonoFontFamily,
                             fontSize = 13.sp,
-                            fontFamily = FontFamily.Monospace,
                         )
                     }
                 }
@@ -121,15 +117,15 @@ fun PortfolioScreen(env: AppEnv, onToken: (String) -> Unit, onPrint: () -> Unit,
                             Text(
                                 gram(sku.weightMg).removeSuffix(" gr"),
                                 color = Palette.GoldDeep,
-                                fontWeight = FontWeight.ExtraBold,
+                                fontFamily = MonoFontFamily,
+                                fontWeight = FontWeight.SemiBold,
                                 fontSize = 12.sp,
-                                fontFamily = FontFamily.Monospace,
                             )
                         }
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
-                            Text("${sku.product} ${gram(sku.weightMg)}", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Palette.Ink)
-                            Text("Seri ${token.serial}", color = Palette.InkSecondary, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+                            Text("${sku.product} ${gram(sku.weightMg)}", fontFamily = BodyFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Palette.Ink)
+                            Text("Seri ${token.serial}", color = Palette.InkSecondary, fontFamily = MonoFontFamily, fontSize = 12.sp)
                         }
                         TokenStatusChip(token, now)
                     }
@@ -142,7 +138,7 @@ fun PortfolioScreen(env: AppEnv, onToken: (String) -> Unit, onPrint: () -> Unit,
             if (state.printOrders.isNotEmpty()) {
                 item {
                     Spacer(Modifier.height(8.dp))
-                    Text("Pesanan cetak fisik", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Palette.Ink)
+                    Text("Pesanan cetak fisik", fontFamily = TitleFontFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Palette.Ink)
                 }
                 items(state.printOrders, key = { it.id }) { order -> PrintOrderCard(order) }
             }
@@ -168,12 +164,12 @@ private fun PortfolioEmptyPreview() = ReidigTheme { PortfolioScreen(rememberPrev
 fun PrintOrderCard(order: PrintOrder) {
     SurfaceCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(order.id, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, fontSize = 13.5.sp, modifier = Modifier.weight(1f))
-            StatusChip(order.status.label, if (order.status == PrintStatus.DONE) ChipTone.GOOD else ChipTone.NEUTRAL, Icons.Outlined.Inventory2)
+            Text(order.id, fontFamily = MonoFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp, modifier = Modifier.weight(1f))
+            StatusChip(order.status.label, if (order.status == PrintStatus.DONE) ChipTone.GOOD else ChipTone.NEUTRAL, PrototypeIcons.GoldIngots)
         }
         Spacer(Modifier.height(4.dp))
-        Text(if (order.method == PrintMethod.JNE) "JNE ke ${order.destination}" else "Ambil di ${order.destination}", fontSize = 13.5.sp, color = Palette.Ink)
-        Text("Estimasi ${order.estimate}", color = Palette.InkSecondary, fontSize = 12.5.sp)
+        Text(if (order.method == PrintMethod.JNE) "JNE ke ${order.destination}" else "Ambil di ${order.destination}", fontFamily = BodyFontFamily, fontSize = 13.5.sp, color = Palette.Ink)
+        Text("Estimasi ${order.estimate}", color = Palette.InkSecondary, fontFamily = BodyFontFamily, fontSize = 12.5.sp)
     }
 }
 
@@ -211,19 +207,25 @@ fun TokenDetailScreen(env: AppEnv, code: String, onBack: () -> Unit, onSold: () 
             null
         },
     ) {
-        Text("${sku.product} ${gram(sku.weightMg)}", fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = Palette.Primary)
+        Text(
+            "${sku.product} ${gram(sku.weightMg)}",
+            fontFamily = TitleFontFamily,
+            fontWeight = FontWeight.Black,
+            fontSize = 22.sp,
+            color = Palette.Primary,
+        )
         Spacer(Modifier.height(8.dp))
         TokenStatusChip(token, now)
         Spacer(Modifier.height(16.dp))
         SurfaceCard {
-            Text("Kode token", color = Palette.InkSoft, fontSize = 12.sp)
+            Text("Kode token", color = Palette.InkSoft, fontFamily = BodyFontFamily, fontSize = 12.sp)
             TokenCodeText(token.code)
             Spacer(Modifier.height(10.dp))
-            Text("Nomor seri keping", color = Palette.InkSoft, fontSize = 12.sp)
+            Text("Nomor seri keping", color = Palette.InkSoft, fontFamily = BodyFontFamily, fontSize = 12.sp)
             TokenCodeText(token.serial)
             Spacer(Modifier.height(10.dp))
-            Text("Waktu perolehan", color = Palette.InkSoft, fontSize = 12.sp)
-            Text(dateTime(token.acquiredAtMs), fontSize = 13.5.sp, color = Palette.Ink, fontWeight = FontWeight.Medium)
+            Text("Waktu perolehan", color = Palette.InkSoft, fontFamily = BodyFontFamily, fontSize = 12.sp)
+            Text(dateTime(token.acquiredAtMs), fontFamily = BodyFontFamily, fontSize = 13.5.sp, color = Palette.Ink, fontWeight = FontWeight.Medium)
         }
         Spacer(Modifier.height(12.dp))
         SurfaceCard {
@@ -235,7 +237,7 @@ fun TokenDetailScreen(env: AppEnv, code: String, onBack: () -> Unit, onSold: () 
         Spacer(Modifier.height(12.dp))
         when {
             token.status == TokenStatus.LOCKED_INSTALLMENT -> ErrorLine("Token terkunci sampai cicilan lunas.", color = Palette.Warn)
-            token.status == TokenStatus.PRINT_PENDING -> Text("Keping sedang diproses untuk dicetak.", color = Palette.InkSecondary, fontSize = 13.sp)
+            token.status == TokenStatus.PRINT_PENDING -> Text("Keping sedang diproses untuk dicetak.", color = Palette.InkSecondary, fontFamily = BodyFontFamily, fontSize = 13.sp)
             !canSell -> ErrorLine("Token baru bisa dijual 24 jam setelah pembelian.", color = Palette.Warn)
         }
     }
@@ -243,14 +245,22 @@ fun TokenDetailScreen(env: AppEnv, code: String, onBack: () -> Unit, onSold: () 
     if (confirmSell) {
         AlertDialog(
             onDismissRequest = { confirmSell = false },
-            title = { Text("Jual token ini?", fontWeight = FontWeight.Bold) },
+            title = { Text("Jual token ini?", fontFamily = TitleFontFamily, fontWeight = FontWeight.Bold) },
             text = {
                 Column {
-                    Text("Keping ini akan dilepas dari portofolio Anda, dan dananya langsung masuk ke Saldo Kas.")
+                    Text(
+                        "Keping ini akan dilepas dari portofolio Anda, dan dananya langsung masuk ke Saldo Kas.",
+                        fontFamily = BodyFontFamily,
+                    )
                     Spacer(Modifier.height(10.dp))
                     SummaryRow("Anda menerima", rupiah(sku.buybackPrice), strong = true, valueColor = Palette.Primary)
                     if (sku.buybackPrice >= Rules.TAX_FREE_SELL_LIMIT) {
-                        Text("Nilai Rp 10 juta atau lebih bisa dikenai pajak sesuai ketentuan.", color = Palette.Warn, fontSize = 12.5.sp)
+                        Text(
+                            "Nilai Rp 10 juta atau lebih bisa dikenai pajak sesuai ketentuan.",
+                            color = Palette.Warn,
+                            fontFamily = BodyFontFamily,
+                            fontSize = 12.5.sp,
+                        )
                     }
                 }
             },
@@ -288,25 +298,25 @@ fun SellPickerScreen(env: AppEnv, onBack: (() -> Unit)?, onToken: (String) -> Un
         SurfaceCard {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
-                    Text("Saldo emas aktif", color = Palette.InkSoft, fontSize = 12.sp)
+                    Text("Saldo emas aktif", color = Palette.InkSoft, fontFamily = BodyFontFamily, fontSize = 12.sp)
                     Spacer(Modifier.height(2.dp))
                     Text(
                         gram(state.totalWeightMg),
                         color = Palette.Ink,
-                        fontWeight = FontWeight.Bold,
+                        fontFamily = MonoFontFamily,
+                        fontWeight = FontWeight.SemiBold,
                         fontSize = 15.sp,
-                        fontFamily = FontFamily.Monospace,
                     )
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text("Harga jual / gr", color = Palette.InkSoft, fontSize = 12.sp)
+                    Text("Harga jual / gr", color = Palette.InkSoft, fontFamily = BodyFontFamily, fontSize = 12.sp)
                     Spacer(Modifier.height(2.dp))
                     Text(
                         rupiah(sku1g.buybackPrice),
                         color = Palette.Primary,
-                        fontWeight = FontWeight.Bold,
+                        fontFamily = MonoFontFamily,
+                        fontWeight = FontWeight.SemiBold,
                         fontSize = 15.sp,
-                        fontFamily = FontFamily.Monospace,
                     )
                 }
             }
@@ -316,7 +326,7 @@ fun SellPickerScreen(env: AppEnv, onBack: (() -> Unit)?, onToken: (String) -> Un
         Spacer(Modifier.height(14.dp))
         if (tokens.isEmpty()) {
             SurfaceCard {
-                Text("Belum ada token emas aktif yang bisa dijual.", color = Palette.InkSecondary, fontSize = 13.5.sp)
+                Text("Belum ada token emas aktif yang bisa dijual.", color = Palette.InkSecondary, fontFamily = BodyFontFamily, fontSize = 13.5.sp)
             }
         }
         tokens.forEach { token ->
@@ -333,20 +343,20 @@ fun SellPickerScreen(env: AppEnv, onBack: (() -> Unit)?, onToken: (String) -> Un
                         Text(
                             gram(sku.weightMg).removeSuffix(" gr"),
                             color = Palette.GoldDeep,
-                            fontWeight = FontWeight.ExtraBold,
+                            fontFamily = MonoFontFamily,
+                            fontWeight = FontWeight.SemiBold,
                             fontSize = 12.sp,
-                            fontFamily = FontFamily.Monospace,
                         )
                     }
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text("${sku.product} ${gram(sku.weightMg)}", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Palette.Ink)
+                        Text("${sku.product} ${gram(sku.weightMg)}", fontFamily = BodyFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Palette.Ink)
                         Text(
                             rupiah(sku.buybackPrice),
                             color = Palette.Primary,
-                            fontWeight = FontWeight.Bold,
+                            fontFamily = MonoFontFamily,
+                            fontWeight = FontWeight.SemiBold,
                             fontSize = 14.sp,
-                            fontFamily = FontFamily.Monospace,
                         )
                     }
                     TokenStatusChip(token, now)
@@ -393,30 +403,37 @@ fun PrintScreen(env: AppEnv, initialToken: String?, onBack: (() -> Unit)?, onDon
         Spacer(Modifier.height(14.dp))
         if (tokens.isEmpty()) {
             SurfaceCard {
-                Text("Belum ada token aktif yang bisa dicetak.", color = Palette.InkSecondary, fontSize = 13.5.sp)
+                Text("Belum ada token aktif yang bisa dicetak.", color = Palette.InkSecondary, fontFamily = BodyFontFamily, fontSize = 13.5.sp)
             }
         }
         tokens.forEach { token ->
             val sku = state.sku(token.skuCode)
             val checked = token.code in selected
             SelectableRow(checked, { selected = if (checked) selected - token.code else selected + token.code }) {
-                Text("${sku.product} ${gram(sku.weightMg)}", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Palette.Ink)
-                Text("Seri ${token.serial}", color = Palette.InkSecondary, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+                Text("${sku.product} ${gram(sku.weightMg)}", fontFamily = BodyFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Palette.Ink)
+                Text("Seri ${token.serial}", color = Palette.InkSecondary, fontFamily = MonoFontFamily, fontSize = 12.sp)
             }
         }
         Spacer(Modifier.height(14.dp))
-        Text("Metode penerimaan", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Palette.Ink)
+        Text("Metode penerimaan", fontFamily = TitleFontFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Palette.Ink)
         Spacer(Modifier.height(8.dp))
         SelectableRow(effectiveMethod == PrintMethod.JNE, { method = PrintMethod.JNE }) {
-            Text("Dikirim dengan kurir berasuransi (JNE)", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Palette.Ink)
-            Text("Dikirim langsung ke alamat rumah Anda.", color = Palette.InkSecondary, fontSize = 12.5.sp)
+            Text("Dikirim dengan kurir berasuransi (JNE)", fontFamily = BodyFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Palette.Ink)
+            Text("Dikirim langsung ke alamat rumah Anda.", color = Palette.InkSecondary, fontFamily = BodyFontFamily, fontSize = 12.5.sp)
         }
         SelectableRow(effectiveMethod == PrintMethod.BRANCH, { if (pickupAllowed) method = PrintMethod.BRANCH }, enabled = pickupAllowed) {
-            Text("Ambil di cabang Raja Emas", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = if (pickupAllowed) Palette.Ink else Palette.DisabledText)
+            Text(
+                "Ambil di cabang Raja Emas",
+                fontFamily = BodyFontFamily,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp,
+                color = if (pickupAllowed) Palette.Ink else Palette.DisabledText,
+            )
             Text(
                 if (pickupAllowed) "Dikirim dulu dari gudang Jakarta. Kami kabari saat siap diambil."
                 else "Minimal total ${gram(Rules.PICKUP_MIN_WEIGHT_MG)} per pesanan. Saat ini ${gram(totalMg)}.",
                 color = Palette.InkSecondary,
+                fontFamily = BodyFontFamily,
                 fontSize = 12.5.sp,
             )
         }
@@ -424,12 +441,12 @@ fun PrintScreen(env: AppEnv, initialToken: String?, onBack: (() -> Unit)?, onDon
         if (effectiveMethod == PrintMethod.JNE) {
             FormField("Alamat pengiriman lengkap", address, { address = it }, placeholder = "Jalan, nomor, kecamatan, kota, kode pos", singleLine = false, keyboardType = KeyboardType.Text)
         } else {
-            Text("Pilih cabang pengambilan", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Palette.Ink)
+            Text("Pilih cabang pengambilan", fontFamily = TitleFontFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Palette.Ink)
             Spacer(Modifier.height(8.dp))
             env.repo.branches.forEach { branch ->
                 SelectableRow(branchId == branch.id, { branchId = branch.id }) {
-                    Text(branch.name, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Palette.Ink)
-                    Text("${branch.area} · estimasi ${branch.estimate}", color = Palette.InkSecondary, fontSize = 12.5.sp)
+                    Text(branch.name, fontFamily = BodyFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Palette.Ink)
+                    Text("${branch.area} · estimasi ${branch.estimate}", color = Palette.InkSecondary, fontFamily = BodyFontFamily, fontSize = 12.5.sp)
                 }
             }
         }

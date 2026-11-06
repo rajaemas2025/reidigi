@@ -58,8 +58,7 @@ def create_app(run_init: bool = True) -> FastAPI:
     async def _stale(_, __):
         return JSONResponse(status_code=409, content={"error": {"code": "CONFLICT", "message": "Data berubah bersamaan. Coba lagi."}})
 
-    if get_settings().is_dev:
-        app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+    app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
     for router in (
         identity_router, catalog_router, orders_router, tokens_router, wallet_router,
